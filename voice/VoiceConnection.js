@@ -61,7 +61,7 @@ class VoiceConnection {
                 return
             this.status.started = true;
 
-            this.ws = new WebSocket("ws://" + this.server + "/?v=5", {
+            this.ws = new WebSocket("wss://" + this.server + "/?v=5", {
                 followRedirects: true
             });
             this.ws.on("error", (err) => {

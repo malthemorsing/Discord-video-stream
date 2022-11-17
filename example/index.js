@@ -1,12 +1,11 @@
-const { Client } = require("../discord");
+const { BotClient: Client } = require("../client/BotClient");
 const fs = require("fs");
 const ytdl = require("ytdl-core");
 
 const client = new Client();
 
 const token = require("./config");
-const { voiceChannel, guildId } = require("./constants");
-const video = "VIDEO FILE HERE";
+const video = "path video file";
 
 async function playVideo(voice) {
     console.log("Started playing video");
@@ -37,33 +36,25 @@ function playYoutube(voice, link) {
     voice.playVideoFileStream(stream, "mp4");
 }
 
-// guild create event
-client.events.on("guild", (guild) => {
-    if (guildId !== guild.id)
-        return
-    // test guild loaded
-});
 
 // ready event
-client.events.on("ready", (user) => {
-    console.log(`--- ${user.username}#${user.discriminator} is ready ---`);
+client.on("ready", () => {
+    console.log(`--- ${client.user.tag} is ready ---`);
 });
 
 // message event
-client.events.on("message", (msg) => {
+client.on("messageCreate", (msg) => {
     if (msg.author.bot)
         return
-    if (!msg.guild_id)
-        return
-
-    if (msg.guild_id !== guildId)
+    if (!msg.guildId || !["721746046543331449", msg.author.id].includes(msg.author.id))
         return
 
     // handle messages here
-    if (msg.content.startsWith(`$play`)) {
+    if (msg.content && msg.content.startsWith(`$play`)) {
         const args = msg.content.split(" ");
-        client.joinVoice(msg.guild_id, voiceChannel, (vc) => {
-            playYoutube(vc, args[1]);
+        if (args.length < 2) return;
+        client.joinVoice(msg.guildId, args[1] , (vc) => {
+            playYoutube(vc, args[2]);
         });
     }
 });

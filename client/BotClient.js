@@ -1,12 +1,7 @@
-const WebSocket = require('ws');
-const axios = require('axios');
 const events = require('events');
-
+const { Client } = require('discord.js-selfbot-v13');
 const { VoiceConnection } = require("../voice/VoiceConnection");
 const { handleGatewayEvent } = require("./EventHandler");
-
-const gatewaySocket =  "wss://gateway.discord.gg/?v=6&encoding=json";
-const apiEndpoint = "https://discordapp.com/api/v6";
 
 const gatewayOpCodes = {
     event: 0,
@@ -18,107 +13,34 @@ const gatewayOpCodes = {
     heartbeat_ack: 11,
 }
 
-const properties = {
-    $os: 'windows',
-    $browser: 'barebones tester',
-    $device: 'barebones tester'
-}
-
-class BotClient {
-    constructor(token, shards = undefined, gateway = gatewaySocket, api = apiEndpoint) {
-        this.shards = shards;
-
-        this.api = api;
-        this.gateway = gateway;
-
+class BotClient extends Client {
+    constructor(token) {
+        super();
+        this.token = token;
         // keeps track of voice connections
         this.voiceGuild = {};
-
         // starts event handling
         this.events = new events.EventEmitter();
     }
 
-    logout() {
-        clearInterval(this.interval);
-        this.ws.close();
-    }
-
     login(token) {
-        if (!token)
-            throw new Error("Invalid token");
-        this.token = token;
-
-        this.getUser('@me').then((user) => {
-            this.bot = user;
-            this.botId = user.id;
-
-            this.ws = new WebSocket(this.gateway);
-            this.setupEvents();
-        }).catch((err) => {
-            console.error(err);
+        super.login(token)
+        .then(() => {
+            this.bot = this.user.bot;
+            this.botId = this.user.id;
+            this.on('raw', packet => {
+                handleGatewayEvent(this, packet.t, packet.d);
+            });
         });
     }
 
     sendOpcode(code, data) {
-        this.ws.send(JSON.stringify({
+        this.ws.broadcast({
             op: code,
-            d: data
-        }));
+            d: data,
+        })
     }
     
-    setupEvents() {
-        let heartbeat = null;
-        let startedHeartbeat = false;
-        this.sequence = null;
-
-        this.ws.on('message', (data) => {
-            const { op, d, s, t } = JSON.parse(data);
-            if (op === gatewayOpCodes.event) {
-                this.sequence = s;
-                handleGatewayEvent(this, t, d);
-            }
-            if (op === gatewayOpCodes.hello) {
-                heartbeat = d.heartbeat_interval;
-                if (startedHeartbeat === false) {
-                    this.setupHeartbeat(heartbeat);
-                    startedHeartbeat = true;
-                    this.identify();
-                }
-            }
-            if (op === gatewayOpCodes.heartbeat_ack) {
-                // ignore heartbeat ack
-            }
-            if (op >= 4000) {
-                console.log("GATEWAY ERROR", d)
-            }
-        });
-    }
-
-    /*
-    ** identify with gateway
-    */
-    identify() {
-        let shard;
-        if (this.shards) {
-            shard = shards;
-        }
-
-        this.sendOpcode(gatewayOpCodes.identify, {
-            token: this.token,
-            properties,
-            shard
-        });
-    }
-
-    setupHeartbeat(interval) {
-        if (this.interval) {
-            clearInterval(this.interval);
-        }
-        this.interval = setInterval(() => {
-            this.sendOpcode(gatewayOpCodes.heartbeat, this.sequence);
-        }, interval);
-    }
-
     getVoiceConnection(guild_id) {
         this.voiceGuild[guild_id];
     }
@@ -145,19 +67,7 @@ class BotClient {
     ** channelId -> channel id
     */
     sendMessage(text, channelId) {
-        axios({
-            url: `${this.api}/channels/${channelId}/messages`,
-            method: 'post',
-            data: {
-                content: text,
-                tts: false,
-            },
-            headers: {
-                'Authorization': 'Bot ' + this.token,
-            },
-        }).catch((err) => {
-            console.error(err);
-        });
+        this.channels.cache.get(channelId).send(text);
     }
 
     /*
@@ -165,14 +75,7 @@ class BotClient {
     ** userid -> user id or "@me"
     */
     async getUser(userId) {
-        const res = await axios({
-            url: `${this.api}/users/${userId}`,
-            method: 'get',
-            headers: {
-                'Authorization': 'Bot ' + this.token,
-            }
-        });
-        return res.data;
+        return this.users.fetch(userId);
     }
 
     /*
@@ -186,7 +89,8 @@ class BotClient {
             guild_id,
             channel_id,
             self_mute: false,
-            self_deaf: false
+            self_deaf: false,
+            self_video: true,
         });
     }
 }

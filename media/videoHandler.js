@@ -2,7 +2,7 @@ const prism = require("prism-media");
 const { readIvfFile, getFrameFromIvf, getFrameDelayInMilliseconds, IvfTransformer } = require("./ivfreader");
 const { VideoStream } = require("./videoStream");
 
-const FFMPEG_ARGUMENTS = "-re -f mp4 -i - -loglevel 0 -f ivf".split(" ");
+const FFMPEG_ARGUMENTS = "-re -i - -loglevel 0 -f ivf -deadline realtime".split(" ");
 
 async function streamVideoFile(voiceUdp, filepath, startcb) {
     if (filepath.endsWith(".ivf"))

@@ -53,8 +53,8 @@ client.on("messageCreate", (msg) => {
     if (msg.content && msg.content.startsWith(`$play`)) {
         const args = msg.content.split(" ");
         if (args.length < 2) return;
-        client.joinVoice(msg.guildId, args[1] , (vc) => {
-            playYoutube(vc, args[2]);
+        client.joinVoice(msg.guildId, msg.member.voice.channelId , (vc) => {
+            playYoutube(vc, args[1]);
         });
     }
 });

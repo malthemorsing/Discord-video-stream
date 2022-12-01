@@ -1,7 +1,7 @@
 const prism = require("prism-media");
 const { AudioStream } = require("./audioStream");
 
-const FFMPEG_ARGUMENTS = ['-analyzeduration', '0', '-loglevel', '0', '-f', 's16le', '-ar', '48000', '-ac', '2', '-deadline', 'realtime'];
+const FFMPEG_ARGUMENTS = ['-analyzeduration', '0', '-loglevel', '0', '-f', 's16le', '-ar', '48000', '-ac', '2'];
 
 async function streamAudioFile(voiceUdp, filepath) {
     if (filepath.endsWith(".mp3") || filepath.endsWith(".opus")) {

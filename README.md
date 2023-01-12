@@ -30,6 +30,6 @@ module.exports = "SELFBOT TOKEN HERE"
 
 in `./example`:
 1. have `config.js` like above
-2. run with `node .`
-3. Start bot: `$play <id voice channel> <youtube video>`
+2. run with `node .` + join voice
+3. Start bot: `$play <youtube video>`
 

@@ -1,12 +1,30 @@
-const fs = require("fs");
-const { Transform } = require("stream");
+import fs from "fs";
+import { Transform } from "stream";
+
+type IvfHeader = {
+    signature: string;
+    version: number;
+    headerLength: number;
+    codec: string;
+    width: number;
+    height: number;
+    timeDenominator: number;
+    timeNumerator: number;
+    frameCount: number;
+}
 
 /*
 ** Transform stream to transform file stream into ivf file
 ** TODO: optimize concats
 */
 class IvfTransformer extends Transform {
-    constructor(options) {
+    public headerSize: number;
+    public frameHeaderSize: number;
+    public header: IvfHeader;
+    public buf: Buffer;
+    public retFullFrame: boolean;
+
+    constructor(options?: any) {
         super(options);
         this.headerSize = 32;
         this.frameHeaderSize = 12;
@@ -16,12 +34,12 @@ class IvfTransformer extends Transform {
         this.retFullFrame = (options && options.fullframe) ? options.fullframe : false;
     }
 
-    _parseHeader(header) {
+    _parseHeader(header: Buffer) {
         const out = {
-            signature: header.slice(0, 4).toString(),
+            signature: header.subarray(0, 4).toString(),
             version: header.readUIntLE(4, 2),
             headerLength: header.readUIntLE(6, 2),
-            codec: header.slice(8, 12).toString(),
+            codec: header.subarray(8, 12).toString(),
             width: header.readUIntLE(12, 2),
             height: header.readUIntLE(14, 2),
             timeDenominator: header.readUIntLE(16, 4),
@@ -33,45 +51,45 @@ class IvfTransformer extends Transform {
         this.emit("header", this.header);
     }
 
-    _getFrameSize(buf) {
+    _getFrameSize(buf: Buffer) {
         return buf.readUIntLE(0, 4);
     }
 
-    _parseFrame(frame) {
+    _parseFrame(frame: Buffer) {
         const size = this._getFrameSize(frame);
 
         if (this.retFullFrame)
-            return this.push(frame.slice(0, 12 + size));
+            return this.push(frame.subarray(0, 12 + size));
 
         const out = {
             size: size,
             timestamp: frame.readBigUInt64LE(4),
-            data: frame.slice(12, 12 + size)
+            data: frame.subarray(12, 12 + size)
         }
         this.push(out.data);
     }
 
-    _appendChunkToBuf(chunk) {
+    _appendChunkToBuf(chunk: any) {
         if (this.buf)
             this.buf = Buffer.concat([this.buf, chunk]);
         else
             this.buf = chunk;
     }
 
-    _updateBufLen(size) {
+    _updateBufLen(size: number) {
         if (this.buf.length > size)
-            this.buf = this.buf.slice(size, this.buf.length);
+            this.buf = this.buf.subarray(size, this.buf.length);
         else
             this.buf = null;
     }
 
-    _write(chunk, encoding, cb) {
+    _write(chunk: any, encoding: BufferEncoding, cb: (error?: Error | null) => void) {
         this._appendChunkToBuf(chunk);
         
         // parse header
         if (!this.header) {
             if (this.buf.length >= this.headerSize) {
-                this._parseHeader(this.buf.slice(0, this.headerSize));
+                this._parseHeader(this.buf.subarray(0, this.headerSize));
                 this._updateBufLen(this.headerSize);
             }
             else {
@@ -85,7 +103,7 @@ class IvfTransformer extends Transform {
             const size = this._getFrameSize(this.buf) + this.frameHeaderSize;
 
             if (this.buf.length >= size) {
-                this._parseFrame(this.buf.slice(0, size));
+                this._parseFrame(this.buf.subarray(0, size));
                 this._updateBufLen(size);
             }
             else
@@ -97,17 +115,17 @@ class IvfTransformer extends Transform {
     }
 }
 
-async function readIvfFile(filepath) {
+async function readIvfFile(filepath: string) {
     const inputStream = fs.createReadStream(filepath);
     
     const stream = new IvfTransformer({ fullframe: true });
     inputStream.pipe(stream);
 
-    let out = {
+    let out: any = {
         frames: []
     };
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
         stream.on("header", (header) => {
             out = {
                 ...out,
@@ -129,7 +147,7 @@ async function readIvfFile(filepath) {
 }
 
 // get frame, starts at one
-function getFrameFromIvf(file, framenum = 1) {
+function getFrameFromIvf(file: any, framenum = 1) {
     if (!(framenum > 0 && framenum <= file.frameCount))
         return false;
     
@@ -156,11 +174,11 @@ function getFrameFromIvf(file, framenum = 1) {
     }
 }
 
-function getFrameDelayInMilliseconds(file) {
-    return ((parseFloat(file.timeNumerator) / parseFloat(file.timeDenominator)) * 1000);
+function getFrameDelayInMilliseconds(file: IvfHeader) {
+    return ((file.timeNumerator / file.timeDenominator) * 1000);
 }
 
-module.exports = {
+export {
     getFrameFromIvf,
     readIvfFile,
     getFrameDelayInMilliseconds,

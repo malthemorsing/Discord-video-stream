@@ -2,21 +2,25 @@
   "name": "test",
   "version": "1.0.0",
   "description": "",
-  "main": "example/index.js",
+  "main": "dist/example/index.js",
   "dependencies": {
-    "@discordjs/opus": "^0.9.0",
-    "@discordjs/voice": "^0.13.0",
-    "axios": "^1.1.3",
-    "dgram": "^1.0.1",
-    "discord.js-selfbot-v13": "^2.9.0",
-    "ffmpeg-static": "^4.2.1",
+    "@dank074/fluent-ffmpeg-multistream-ts": "^1.0.2",
+    "discord.js-selfbot-v13": "^2.10.5",
+    "fluent-ffmpeg": "^2.1.2",
     "libsodium-wrappers": "^0.7.10",
     "prism-media": "^1.3.4",
-    "ws": "^7.2.0",
-    "ytdl-core": "^4.11.2"
+    "@discordjs/opus": "^0.8.0",
+    "ws": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.20",
+    "@types/libsodium-wrappers": "^0.7.10",
+    "typescript": "^4.9.5"
   },
   "scripts": {
-    "start": "node ."
+    "build": "tsc",
+    "start": "node ./dist/example/index.js",
+    "yeet": "npm run build && npm run start"
   },
   "author": "",
   "license": "ISC"

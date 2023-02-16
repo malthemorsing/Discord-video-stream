@@ -2,9 +2,8 @@
 Fork: [Discord-video-experiment](https://github.com/mrjvs/Discord-video-experiment)
 
 ## features
- - Playing vp8 video in a voice channel (not `go live`, but webcam video)
+ - Playing vp8 video in a voice channel (`go live`, or webcam video)
  - Transcoding video and audio to vp8 (using ffmpeg)
- - Can send via streams (possible hook with youtube)
 
 ## implementation
 What I implemented and what I did not.
@@ -17,19 +16,35 @@ What I implemented and what I did not.
 #### Packet types
  - [X] RTP (sending of realtime data)
  - [ ] RTX (retransmission)
- - [ ] Go live (?) (Has not been researched yet if even possible)
+ - [X] Go live
 
 #### Extras
  - [ ] Figure out rtp header extensions (discord specific)
 
 ## Running example
-`./example/config.js`:
-```JS
-module.exports = "SELFBOT TOKEN HERE"
+`src/example/config.json`:
+```json
+"token": "SELF TOKEN HERE",
+"acceptedAuthors": ["USER_ID_HERE"],
 ```
 
-in `./example`:
-1. have `config.js` like above
-2. run with `node .` + join voice
-3. Start bot: `$play <youtube video>`
+1. Configure your `config.json` with your accepted authors ids, and your self token
+2. Generate js files with ```npm run build```
+3. Start program with: ```npm run start```
+3. Start streaming with commands: 
 
+for go-live
+```
+$play-live <Direct video link> <Voice channel Url>
+```
+or for cam
+```
+$play-cam <Direct video link> <Voice channel Url>
+```
+
+for example:
+```
+$play-live http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4 https://discord.com/channels/<guild_id>/<channel_id>
+```
+
+You can get the channel url by right clicking the voice channel and selecting `Copy Link`

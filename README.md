@@ -48,3 +48,6 @@ $play-live http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigB
 ```
 
 You can get the channel url by right clicking the voice channel and selecting `Copy Link`
+
+![image](https://user-images.githubusercontent.com/25986048/219265909-8b3f598b-1dd9-40a8-b0ec-acf0bcc4dfd8.png)
+

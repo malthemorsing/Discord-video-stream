@@ -1,16 +1,7 @@
 import { Writable } from "stream";
 import { VoiceUdp } from "../client/voice/VoiceUdp";
 
-export type Ops = {
-    ssrc: number;
-    secretkey: Uint8Array;
-    mtu: number;
-    timestamp?: number;
-    pictureId?: number
-}
-
 export class VideoStream extends Writable {
-    public ops: Ops;
     public udp: VoiceUdp;
     public count: number;
     public sleepTime: number;

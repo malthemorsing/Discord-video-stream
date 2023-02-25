@@ -4,6 +4,7 @@ Fork: [Discord-video-experiment](https://github.com/mrjvs/Discord-video-experime
 ## features
  - Playing vp8 video in a voice channel (`go live`, or webcam video)
  - Transcoding video and audio to vp8 (using ffmpeg)
+ - Screensharing using Puppeteer
 
 ## implementation
 What I implemented and what I did not.
@@ -16,10 +17,13 @@ What I implemented and what I did not.
 #### Packet types
  - [X] RTP (sending of realtime data)
  - [ ] RTX (retransmission)
+
+#### Connection types
+ - [x] Regular Voice Connection
  - [X] Go live
 
 #### Extras
- - [ ] Figure out rtp header extensions (discord specific)
+ - [x] Figure out rtp header extensions (discord specific) (discord seems to use one-byte RTP header extension )
 
 ## Running example
 `src/example/config.json`:
@@ -41,7 +45,10 @@ or for cam
 ```
 $play-cam <Direct video link> <Voice channel Url>
 ```
-
+or for screensharing using puppeteer
+```
+$play-screen <website url> <Voice channel url>
+```
 for example:
 ```
 $play-live http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4 https://discord.com/channels/<guild_id>/<channel_id>

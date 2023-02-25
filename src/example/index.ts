@@ -1,8 +1,10 @@
 import { StreamerClient } from "../client/StreamerClient";
 import { command, streamLivestreamVideo } from "../media/streamLivestreamVideo";
-
+import { launch, getStream } from 'puppeteer-stream';
 import config from "./config.json";
 import { VoiceUdp } from "../client/voice/VoiceUdp";
+import { Readable } from "stream";
+import { executablePath } from 'puppeteer';
 
 const client = new StreamerClient();
 
@@ -20,54 +22,38 @@ client.on("messageCreate", async (msg) => {
     if (!msg.content) return;
 
     if (msg.content.startsWith(`$play-live`)) {
-        const args = msg.content.split(" ");
-        if (args.length < 3) return;
+        const args = parseArgs(msg.content)
+        if (!args) return;
 
-        const channelUrl = args[2].split("/");
-
-        if (channelUrl.length < 6) {
-            console.log("invalid url");
-            return;
-        }
-
-        const guildId = channelUrl[4];
-
-        const channelId = channelUrl[5];
-
-        if (channelId == null || channelId == undefined) return;
-
-        console.log(`Attempting to join voice channel ${guildId}/${channelId}`);
-        await client.joinVoice(guildId, channelId);
+        console.log(`Attempting to join voice channel ${args.guildId}/${args.channelId}`);
+        await client.joinVoice(args.guildId, args.channelId);
 
         const streamUdpConn = await client.createStream();
 
-        playVideo(args[1], streamUdpConn);
+        playVideo(args.url, streamUdpConn);
         return;
     } else if (msg.content.startsWith("$play-cam")) {
-        const args = msg.content.split(" ");
-        if (args.length < 3) return;
+        const args = parseArgs(msg.content);
+        if (!args) return;
 
-        // we gonna make them ALL join
+        console.log(`Attempting to join voice channel ${args.guildId}/${args.channelId}`);
+        const vc = await client.joinVoice(args.guildId, args.channelId);
 
-        const channelUrl = args[2].split("/");
+        client.signalVideo(args.guildId, args.channelId, true);
 
-        if (channelUrl.length < 6) {
-            console.log("invalid url");
-            return;
-        }
+        playVideo(args.url, vc);
 
-        const guildId = channelUrl[4];
+        return;
+    } else if(msg.content.startsWith("$play-screen")) {
+        const args = parseArgs(msg.content)
+        if (!args) return;
 
-        const channelId = channelUrl[5];
+        console.log(`Attempting to join voice channel ${args.guildId}/${args.channelId}`);
+        await client.joinVoice(args.guildId, args.channelId);
 
-        if (channelId == null || channelId == undefined) return;
+        const streamUdpConn = await client.createStream();
 
-        console.log(`Attempting to join voice channel ${guildId}/${channelId}`);
-        const vc = await client.joinVoice(guildId, channelId);
-
-        client.signalVideo(guildId, channelId, true);
-
-        playVideo(args[1], vc);
+        streamPuppeteer(args.url, streamUdpConn);
 
         return;
     } else if (msg.content.startsWith("$disconnect")) {
@@ -98,4 +84,63 @@ async function playVideo(video: string, udpConn: VoiceUdp) {
     command?.kill("SIGINT");
 
     client.leaveVoice();
+}
+
+async function streamPuppeteer(url: string, udpConn: VoiceUdp) {
+    const browser = await launch({
+        defaultViewport: {
+            width: config.streamResolution.width,
+            height: config.streamResolution.height,
+        },
+        executablePath: executablePath()
+    });
+
+    const page = await browser.newPage();
+    await page.goto(url);
+
+    // node typings are fucked, not sure why
+    const stream: any = await getStream(page, { audio: true, video: true, mimeType: "video/webm;codecs=vp8,opus" }); 
+
+    udpConn.voiceConnection.setSpeaking(true);
+    udpConn.voiceConnection.setVideoStatus(true);
+    try {
+        // is there a way to distinguish audio from video chunks so we dont have to use ffmpeg ???
+        const res = await streamLivestreamVideo((stream as Readable), udpConn);
+
+        console.log("Finished playing video " + res);
+    } catch (e) {
+        console.log(e);
+    } finally {
+        udpConn.voiceConnection.setSpeaking(false);
+        udpConn.voiceConnection.setVideoStatus(false);
+    }
+    command?.kill("SIGINT");
+
+    client.leaveVoice();
+}
+
+function parseArgs(message: string): Args | undefined {
+    const args = message.split(" ");
+    if (args.length < 3) return;
+
+    const url = args[1];
+
+    const channelUrl = args[2].split("/");
+
+    if (channelUrl.length < 6) {
+        console.log("invalid url");
+        return;
+    }
+
+    const guildId = channelUrl[4];
+
+    const channelId = channelUrl[5];
+
+    return { url, guildId, channelId }
+}
+
+type Args = {
+    url: string;
+    guildId: string;
+    channelId: string;
 }

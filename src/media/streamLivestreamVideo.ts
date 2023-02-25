@@ -6,10 +6,11 @@ import { AudioStream } from "./audioStream";
 import { VoiceUdp } from '../client/voice/VoiceUdp';
 import { StreamOutput } from '@dank074/fluent-ffmpeg-multistream-ts';
 import config from '../example/config.json';
+import { Readable } from 'stream';
 
 export let command: ffmpeg.FfmpegCommand = undefined;
 
-export function streamLivestreamVideo(url: string, voiceUdp: VoiceUdp) {
+export function streamLivestreamVideo(url: string | Readable, voiceUdp: VoiceUdp) {
     return new Promise<string>((resolve, reject) => {
         const videoStream: VideoStream = new VideoStream( voiceUdp);
         
@@ -38,8 +39,14 @@ export function streamLivestreamVideo(url: string, voiceUdp: VoiceUdp) {
             "Connection": "keep-alive"
         }
 
-        const isHttpUrl = url.startsWith('http') || url.startsWith('https');
-        const isHls = url.includes('m3u');
+        let isHttpUrl = false;
+        let isHls = false;
+
+        if(typeof url === "string")
+        {
+            isHttpUrl = url.startsWith('http') || url.startsWith('https');
+            isHls = url.includes('m3u');
+        }        
 
         try {
             command = ffmpeg(url)

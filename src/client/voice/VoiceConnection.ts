@@ -4,22 +4,22 @@ import { VoiceUdp } from "./VoiceUdp";
 import config from '../../example/config.json';
 import { StreamConnection } from '../stream/StreamConnection';
 
-export const voiceOpCodes = {
-    identify: 0,
-    select_protocol: 1,
-    ready: 2,
-    heartbeat: 3,
-    select_protocol_ack: 4,
-    speaking: 5,
-    heartbeat_ack: 6,
-    hello: 8,
-    resumed: 9,
-    sources: 12,
-    client_disconnect: 13,
-    session_update: 14,
-    media_sink_wants: 15,
-    voice_backend_version: 16,
-    channel_options_update: 17
+export enum voiceOpCodes {
+    identify = 0,
+    select_protocol = 1,
+    ready = 2,
+    heartbeat = 3,
+    select_protocol_ack = 4,
+    speaking = 5,
+    heartbeat_ack = 6,
+    hello = 8,
+    resumed = 9,
+    sources = 12,
+    client_disconnect = 13,
+    session_update = 14,
+    media_sink_wants = 15,
+    voice_backend_version = 16,
+    channel_options_update = 17
 }
 
 type VoiceConnectionStatus =
@@ -204,7 +204,7 @@ export class VoiceConnection {
             codecs: [
                 { name: "opus", type: "audio", priority: 1000, payload_type: 120 },
                 //{ name: "H264", type: "video", priority: 1000, payload_type: 101, rtx_payload_type: 102},
-                { name: "VP8", type: "video", priority: 3000, payload_type: 103, rtx_payload_type: 104 }
+                { name: "VP8", type: "video", priority: 3000, payload_type: 103, rtx_payload_type: 104, encode: true, decode: true }
                 //{ name: "VP9", type: "video", priority: 3000, payload_type: 105, rtx_payload_type: 106 },
             ],
             data: {

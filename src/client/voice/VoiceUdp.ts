@@ -1,4 +1,5 @@
 import udpCon from 'dgram';
+import { isIPv4 } from 'net';
 import { AudioPacketizer } from '../packet/AudioPacketizer';
 import { max_int32bit } from '../packet/BaseMediaPacketizer';
 import { VideoPacketizer } from '../packet/VideoPacketizer';
@@ -6,15 +7,17 @@ import { VoiceConnection } from './VoiceConnection';
 
 // credit to discord.js
 function parseLocalPacket(message: Buffer) {
-    try {
-        const packet = Buffer.from(message);
-        let address = '';
-        for (let i = 4; i < packet.indexOf(0, i); i++) address += String.fromCharCode(packet[i]);
-        const port = parseInt(packet.readUIntLE(packet.length - 2, 2).toString(10), 10);
-        return { address, port };
-    } catch (error) {
-        return { error };
-    }
+    const packet = Buffer.from(message);
+
+	const ip = packet.subarray(8, packet.indexOf(0, 8)).toString('utf8');
+
+	if (!isIPv4(ip)) {
+		throw new Error('Malformed IP address');
+	}
+
+	const port = packet.readUInt16BE(packet.length - 2);
+
+	return { ip, port };
 }
   
 
@@ -119,27 +122,33 @@ export class VoiceUdp {
     public createUdp(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             this.socket = udpCon.createSocket('udp4');
-            this.socket.on('error', e => {
-                console.error("Error connecting to media udp server", e);
-                reject(e);
+
+            this.socket.on('error', (error: Error) => {
+                console.error("Error connecting to media udp server", error);
+                reject(error);
             });
+
             this.socket.once('message', (message) => {
-                
-                const packet = parseLocalPacket(message);
-                if (packet.error) {
-                    return reject(packet.error);
+                if (message.readUInt16BE(0) !== 2) {
+                    reject('wrong handshake packet for udp')
                 }
+                try {
+                    const packet = parseLocalPacket(message);
 
-                this._voiceConnection.self_ip = packet.address;
-                this._voiceConnection.self_port = packet.port;
-                this._voiceConnection.setProtocols();
-
+                    this._voiceConnection.self_ip = packet.ip;
+                    this._voiceConnection.self_port = packet.port;
+                    this._voiceConnection.setProtocols();
+                } catch(e) { reject(e) }
+                
                 resolve();
                 this.socket.on('message', this.handleIncoming);
             });
 
-            const blank = Buffer.alloc(70);
-            blank.writeUIntBE(this._voiceConnection.ssrc, 0, 4);
+            const blank = Buffer.alloc(74);
+            
+            blank.writeUInt16BE(1, 0);
+			blank.writeUInt16BE(70, 2);
+            blank.writeUInt32BE(this._voiceConnection.ssrc, 4);
 
             this.socket.send(blank, 0, blank.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {
                 if (error) {

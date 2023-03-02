@@ -4,35 +4,35 @@ import { VoiceConnection } from "./voice/VoiceConnection";
 import { StreamConnection } from './stream/StreamConnection';
 import { VoiceUdp } from './voice/VoiceUdp';
 
-export const gatewayOpCodes = {
-    dispatch: 0,
-    heartbeat: 1,
-    identify: 2,
-    presence_update: 3,
-    voice_state_update: 4,
-    voice_server_ping: 5,
-    resume: 6,
-    reconnect: 7,
-    request_guild_members: 8,
-    invalid_session: 9,
-    hello: 10,
-    heartbeat_ack: 11,
-    call_connect: 13,
-    guild_subscriptions: 14,
-    lobby_connect: 15,
-    lobby_disconnect: 16,
-    lobby_voice_states_update: 17,
-    stream_create: 18,
-    stream_delete: 19,
-    stream_watch: 20,
-    stream_ping: 21,
-    stream_set_paused: 22,
-    request_guild_application_commands: 24,
-    embedded_activity_launch: 25,
-    embedded_activity_close: 26,
-    embedded_activity_update: 27,
-    request_forum_unreads: 28,
-    remote_command: 29
+export enum gatewayOpCodes {
+    dispatch = 0,
+    heartbeat = 1,
+    identify = 2,
+    presence_update = 3,
+    voice_state_update = 4,
+    voice_server_ping = 5,
+    resume = 6,
+    reconnect = 7,
+    request_guild_members = 8,
+    invalid_session = 9,
+    hello = 10,
+    heartbeat_ack = 11,
+    call_connect = 13,
+    guild_subscriptions = 14,
+    lobby_connect = 15,
+    lobby_disconnect = 16,
+    lobby_voice_states_update = 17,
+    stream_create = 18,
+    stream_delete = 19,
+    stream_watch = 20,
+    stream_ping = 21,
+    stream_set_paused = 22,
+    request_guild_application_commands = 24,
+    embedded_activity_launch = 25,
+    embedded_activity_close = 26,
+    embedded_activity_update = 27,
+    request_forum_unreads = 28,
+    remote_command = 29
 }
 
 export class StreamerClient extends Client {
@@ -62,26 +62,24 @@ export class StreamerClient extends Client {
     
             this.voiceConnection?.setTokens(data.endpoint, data.token);
         } else if (event === "STREAM_CREATE") {
-            const guildId = data.stream_key.split(":")[1];
+            const [type, guildId, channelId, userId] = data.stream_key.split(":");
     
-            if(!guildId) return;
+            if(this.voiceConnection?.guild != guildId) return;
+
+            if(userId === this.user.id) {
+                this.voiceConnection.screenShareConn.server_id = data.rtc_server_id;
+        
+                this.voiceConnection.screenShareConn.streamKey = data.stream_key;
+                this.voiceConnection.screenShareConn.setSession(this.voiceConnection.session_id);
+            }        
+        } else if (event === "STREAM_SERVER_UPDATE") {
+            const [type, guildId, channelId, userId] = data.stream_key.split(":");
     
             if(this.voiceConnection?.guild != guildId) return;
     
-            this.voiceConnection.screenShareConn.server_id = data.rtc_server_id;
-    
-            this.voiceConnection.screenShareConn.streamKey = data.stream_key;
-            this.voiceConnection.screenShareConn.setSession(this.voiceConnection.session_id);
-        } else if (event === "STREAM_SERVER_UPDATE") {
-            const guildId = data.stream_key.split(":")[1];
-    
-            if(!guildId) return;
-    
-            if(!this.voiceConnection) return;
-    
-            if(this.voiceConnection.guild != guildId) return;
-    
-            this.voiceConnection.screenShareConn.setTokens(data.endpoint, data.token);
+            if(userId === this.user.id) {
+                this.voiceConnection.screenShareConn.setTokens(data.endpoint, data.token);
+            }
         }
     }
 

@@ -12,6 +12,7 @@ export enum voiceOpCodes {
     select_protocol_ack = 4,
     speaking = 5,
     heartbeat_ack = 6,
+    resume = 7,
     hello = 8,
     resumed = 9,
     sources = 12,
@@ -27,6 +28,7 @@ type VoiceConnectionStatus =
     hasSession: boolean;
     hasToken: boolean;
     started: boolean;
+    resuming: boolean;
 }
 
 export class VoiceConnection {
@@ -56,7 +58,8 @@ export class VoiceConnection {
         this.status = {
             hasSession: false,
             hasToken: false,
-            started: false
+            started: false,
+            resuming: false
         }
 
         // make udp client
@@ -71,8 +74,8 @@ export class VoiceConnection {
 
     stop(): void {
         clearInterval(this.interval);
-        this.ws.close();
         this.status.started = false;
+        this.ws.close();
         this.udp.stop();
     }
 
@@ -105,13 +108,28 @@ export class VoiceConnection {
                 followRedirects: true
             });
             this.ws.on("open", () => {
-                this.identify();
+                if(this.status.resuming) {
+                    this.status.resuming = false;
+                    this.resume();
+                } else {
+                    this.identify();
+                }
             })
             this.ws.on("error", (err) => {
                 console.error(err);
             })
-            this.ws.on("close", (err) => {
+            this.ws.on("close", (code) => {
+                const wasStarted = this.status.started;
+
                 this.status.started = false;
+                this.udp.ready = false;
+
+                const canResume = code === 4_015 || code < 4_000;
+
+                if (canResume && wasStarted) {
+                    this.status.resuming = true;
+                    this.start();
+                }
             })
             this.setupEvents();
         }
@@ -143,17 +161,21 @@ export class VoiceConnection {
             else if (op >= 4000) {
                 console.error("Error voice connection", d);
             }
-            else if (op === 8) {
+            else if (op === voiceOpCodes.hello) {
                 this.setupHeartbeat(d.heartbeat_interval);
             }
             else if (op === voiceOpCodes.select_protocol_ack) { // session description
                 this.handleSession(d);
             }
-            else if (op === 5) {
+            else if (op === voiceOpCodes.speaking) {
                 // ignore speaking updates
             }
-            else if (op === 6) {
+            else if (op === voiceOpCodes.heartbeat_ack) {
                 // ignore heartbeat acknowledgements
+            }
+            else if (op === voiceOpCodes.resumed) {
+                this.status.started = true;
+                this.udp.ready = true;
             }
             else {
                 //console.log("unhandled voice event", {op, d});
@@ -190,6 +212,14 @@ export class VoiceConnection {
             streams: [
                 {type:"screen", rid:"100",quality:100}
             ]
+        });
+    }
+
+    resume(): void {
+        this.sendOpcode(voiceOpCodes.resume, {
+            server_id: this.server_id,
+            session_id: this.session_id,
+            token: this.token,
         });
     }
 

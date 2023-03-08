@@ -153,11 +153,12 @@ export class StreamerClient extends Client {
     }
 
     public leaveVoice(): void {
-        this.signalLeaveVoice();
         this.voiceConnection?.stop();
 
         this.voiceConnection?.screenShareConn?.stop();
 
+        this.signalLeaveVoice();
+        
         this.voiceConnection = undefined;
     }
 

@@ -7,11 +7,11 @@ export class VideoStream extends Writable {
     public sleepTime: number;
     public startTime: number = -1;
     
-    constructor(udp: VoiceUdp) {
+    constructor(udp: VoiceUdp, fps: number = 30) {
         super();
         this.udp = udp;
         this.count = 0;
-        this.sleepTime = 20;
+        this.sleepTime = 1000 / fps;
     }
 
     public setSleepTime(time: number) {

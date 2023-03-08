@@ -142,7 +142,7 @@ export class StreamerClient extends Client {
 
     public createStream(): Promise<VoiceUdp> {
         return new Promise<VoiceUdp>((resolve, reject) => {
-            if(!this._voiceConnection) return reject('cannot start stream without first joining voice channel');
+            if(!this._voiceConnection) reject('cannot start stream without first joining voice channel');
 
             this.signalStream(this.voiceConnection.guild, this.voiceConnection.channelId);
 

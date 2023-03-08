@@ -92,7 +92,7 @@ export class VoiceUdp {
             this.socket.send(packet, 0, packet.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {
                 if (error) {
                     console.log("ERROR", error);
-                    return reject(error);
+                    reject(error);
                 }
                 resolve();
             });
@@ -152,7 +152,7 @@ export class VoiceUdp {
 
             this.socket.send(blank, 0, blank.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {
                 if (error) {
-                    return reject(error)
+                    reject(error)
                 }
             });
         });

@@ -48,6 +48,7 @@ export class VoiceConnection {
     public address: string;
     public port: number;
     public ssrc: number;
+    public videoSsrc: number;
     public modes: string[];
     public secretkey: Uint8Array;
     public server_id: string
@@ -140,6 +141,7 @@ export class VoiceConnection {
         this.address = d.ip;
         this.port = d.port;
         this.modes = d.modes;
+        this.videoSsrc = this.ssrc + 1; // todo: set it from packet streams object
     }
 
     handleSession(d: any): void {
@@ -253,13 +255,13 @@ export class VoiceConnection {
     public setVideoStatus(bool: boolean): void {
         this.sendOpcode(voiceOpCodes.sources, {
             audio_ssrc: this.ssrc,
-            video_ssrc: bool ? this.ssrc + 1 : 0,
+            video_ssrc: bool ? this.videoSsrc : 0,
             rtx_ssrc: bool ? this.ssrc + 2 : 0,
             streams: [
                 { 
                     type:"video",
                     rid:"100",
-                    ssrc: bool ? this.ssrc + 1 : 0,
+                    ssrc: bool ? this.videoSsrc : 0,
                     active:true,
                     quality:100,
                     rtx_ssrc:bool ? this.ssrc + 2 : 0,

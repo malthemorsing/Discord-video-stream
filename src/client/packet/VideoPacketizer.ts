@@ -21,7 +21,7 @@ export class VideoPacketizer extends BaseMediaPacketizer {
     public override createPacket(chunk: any, isLastPacket = true, isFirstPacket = true): Buffer {
         if(chunk.length > this.mtu) throw Error('error packetizing video frame: frame is larger than mtu');
 
-        const packetHeader = this.makeRtpHeader(this.connection.voiceConnection.ssrc + 1, isLastPacket);
+        const packetHeader = this.makeRtpHeader(this.connection.voiceConnection.videoSsrc, isLastPacket);
 
         const packetData = this.makeFrame(chunk, isFirstPacket);
     

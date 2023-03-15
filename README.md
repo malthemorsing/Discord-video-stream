@@ -55,8 +55,8 @@ try {
 } catch (e) {
     console.log(e);
 } finally {
-    udpConn.voiceConnection.setSpeaking(false);
-    udpConn.voiceConnection.setVideoStatus(false);
+    streamUdpConn.voiceConnection.setSpeaking(false);
+    streamUdpConn.voiceConnection.setVideoStatus(false);
 }
 ```
 ## Running example
@@ -92,3 +92,7 @@ You can get the channel url by right clicking the voice channel and selecting `C
 
 ![image](https://user-images.githubusercontent.com/25986048/219265909-8b3f598b-1dd9-40a8-b0ec-acf0bcc4dfd8.png)
 
+## FAQS
+- Can I stream on existing voice connection (CAM) and in a go-live connection simultaneously?
+
+Yes, just send the media packets over both udp connections. The voice gateway expects you to signal when a user turns on their camera, so make sure you signal using `client.signalVideo(guildId, channelId, true)` before you start sending cam media packets.

@@ -1,3 +1,5 @@
 node_modules
-src/example/config.json
 dist
+#example/src/config.json
+example/node_modules
+example/dist

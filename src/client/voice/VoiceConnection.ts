@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 
 import { VoiceUdp } from "./VoiceUdp";
-import config from '../../example/config.json';
+import { streamOpts } from '../StreamOpts';
 import { StreamConnection } from '../stream/StreamConnection';
 
 export enum voiceOpCodes {
@@ -266,11 +266,11 @@ export class VoiceConnection {
                     quality:100,
                     rtx_ssrc:bool ? this.ssrc + 2 : 0,
                     max_bitrate:2500000,
-                    max_framerate: config.streamResolution.fps,
+                    max_framerate: streamOpts.fps,
                     max_resolution: {
                         type:"fixed",
-                        width: config.streamResolution.width,
-                        height: config.streamResolution.height
+                        width: streamOpts.width,
+                        height: streamOpts.height
                     }
                 }
             ]

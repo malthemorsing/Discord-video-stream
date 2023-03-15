@@ -5,7 +5,7 @@ import { VideoStream } from "./videoStream";
 import { AudioStream } from "./audioStream";
 import { VoiceUdp } from '../client/voice/VoiceUdp';
 import { StreamOutput } from '@dank074/fluent-ffmpeg-multistream-ts';
-import config from '../example/config.json';
+import { streamOpts } from '../client/StreamOpts';
 import { Readable } from 'stream';
 
 export let command: ffmpeg.FfmpegCommand = undefined;
@@ -65,9 +65,9 @@ export function streamLivestreamVideo(url: string | Readable, voiceUdp: VoiceUdp
             .on('stderr', console.error)
             .output(StreamOutput(ivfStream).url, { end: false })
             .noAudio()
-            .size(`${config.streamResolution.width}x${config.streamResolution.height}`)
-            .fpsOutput(config.streamResolution.fps)
-            .videoBitrate(`${config.streamResolution.bitrateKbps}k`)
+            .size(`${streamOpts.width}x${streamOpts.height}`)
+            .fpsOutput(streamOpts.fps)
+            .videoBitrate(`${streamOpts.bitrateKbps}k`)
             .format('ivf')
             .outputOption('-deadline', 'realtime')
             .output(StreamOutput(opus).url, { end: false})
@@ -77,7 +77,7 @@ export function streamLivestreamVideo(url: string | Readable, voiceUdp: VoiceUdp
             //.audioBitrate('128k')
             .format('s16le');
             
-            if(config.hardware_acc) command.inputOption('-hwaccel', 'auto');
+            if(streamOpts.hardware_encoding) command.inputOption('-hwaccel', 'auto');
             
             if(isHttpUrl) {
                 command.inputOption('-headers', 

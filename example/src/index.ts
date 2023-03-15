@@ -1,12 +1,16 @@
-import { StreamerClient } from "../client/StreamerClient";
-import { command, streamLivestreamVideo } from "../media/streamLivestreamVideo";
+import { StreamerClient, command, streamLivestreamVideo, VoiceUdp, streamOpts } from "@dank074/discord-video-stream";
 import { launch, getStream } from 'puppeteer-stream';
 import config from "./config.json";
-import { VoiceUdp } from "../client/voice/VoiceUdp";
 import { Readable } from "stream";
 import { executablePath } from 'puppeteer';
 
 const client = new StreamerClient();
+
+streamOpts.bitrateKbps = config.streamOpts.bitrateKbps;
+streamOpts.fps = config.streamOpts.fps;
+streamOpts.hardware_encoding = config.streamOpts.hardware_acc;
+streamOpts.height = config.streamOpts.height;
+streamOpts.width = config.streamOpts.width;
 
 // ready event
 client.on("ready", () => {
@@ -89,8 +93,8 @@ async function playVideo(video: string, udpConn: VoiceUdp) {
 async function streamPuppeteer(url: string, udpConn: VoiceUdp) {
     const browser = await launch({
         defaultViewport: {
-            width: config.streamResolution.width,
-            height: config.streamResolution.height,
+            width: streamOpts.width,
+            height: streamOpts.height,
         },
         executablePath: executablePath()
     });

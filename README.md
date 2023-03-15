@@ -26,7 +26,7 @@ What I implemented and what I did not.
  - [x] Figure out rtp header extensions (discord specific) (discord seems to use one-byte RTP header extension )
 
 ## Running example
-`src/example/config.json`:
+`example/src/config.json`:
 ```json
 "token": "SELF TOKEN HERE",
 "acceptedAuthors": ["USER_ID_HERE"],

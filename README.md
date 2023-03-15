@@ -1,12 +1,12 @@
 ## Discord bot video
 Fork: [Discord-video-experiment](https://github.com/mrjvs/Discord-video-experiment)
 
-## features
+## Features
  - Playing vp8 video in a voice channel (`go live`, or webcam video)
- - Transcoding video and audio to vp8 (using ffmpeg)
+ - Transcoding video to vp8 and audio to opus (using ffmpeg)
  - Screensharing using Puppeteer
 
-## implementation
+## Implementation
 What I implemented and what I did not.
 
 #### Video codecs
@@ -19,12 +19,46 @@ What I implemented and what I did not.
  - [ ] RTX (retransmission)
 
 #### Connection types
- - [x] Regular Voice Connection
+ - [X] Regular Voice Connection
  - [X] Go live
 
 #### Extras
- - [x] Figure out rtp header extensions (discord specific) (discord seems to use one-byte RTP header extension )
+ - [X] Figure out rtp header extensions (discord specific) (discord seems to use one-byte RTP header extension https://www.rfc-editor.org/rfc/rfc8285.html#section-4.2)
 
+## Usage
+Install the package:
+```
+npm install @dank074/discord-video-stream
+```
+
+Create a new streamer client:
+```typescript
+const client = new StreamerClient();
+client.login('TOKEN HERE');
+```
+
+Make client join a voice channel and create a stream:
+```typescript
+await client.joinVoice("GUILD ID HERE", "CHANNEL ID HERE");
+
+const streamUdpConn = await client.createStream();
+```
+
+Start sending media over the udp connection:
+```typescript
+streamUdpConn.voiceConnection.setSpeaking(true);
+streamUdpConn.voiceConnection.setVideoStatus(true);
+try {
+    const res = await streamLivestreamVideo("DIRECT VIDEO URL OR READABLE STREAM HERE", streamUdpConn);
+
+    console.log("Finished playing video " + res);
+} catch (e) {
+    console.log(e);
+} finally {
+    udpConn.voiceConnection.setSpeaking(false);
+    udpConn.voiceConnection.setVideoStatus(false);
+}
+```
 ## Running example
 `example/src/config.json`:
 ```json

@@ -29,6 +29,13 @@
   "scripts": {
     "build": "tsc"
   },
+  "keywords": [
+    "discord",
+    "video",
+    "voice",
+    "stream",
+    "go-live"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dank074/Discord-video-stream.git"

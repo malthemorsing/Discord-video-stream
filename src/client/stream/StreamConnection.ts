@@ -3,7 +3,8 @@ import { VoiceConnection, voiceOpCodes } from "../voice/VoiceConnection";
 
 export class StreamConnection extends VoiceConnection
 {
-    public streamKey: string;
+    private _streamKey: string;
+    private _serverId: string;
 
     public override setSpeaking(speaking: boolean): void {
         this.sendOpcode(voiceOpCodes.speaking, {
@@ -11,5 +12,20 @@ export class StreamConnection extends VoiceConnection
             speaking: speaking ? 2 : 0,
             ssrc: this.ssrc
         });
+    }
+
+    public override get serverId(): string {
+        return this._serverId;
+    }
+
+    public set serverId(id: string) {
+        this._serverId = id;
+    }
+
+    public get streamKey(): string {
+        return this._streamKey;
+    }
+    public set streamKey(value: string) {
+        this._streamKey = value;
     }
 }

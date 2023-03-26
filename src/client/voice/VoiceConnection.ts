@@ -34,7 +34,7 @@ type VoiceConnectionStatus =
 export class VoiceConnection {
     private interval: NodeJS.Timer;
     public udp: VoiceUdp;
-    public guild: string;
+    public guildId: string;
     public channelId: string;
     public botId: string;
     public ws: WebSocket;
@@ -49,9 +49,9 @@ export class VoiceConnection {
     public port: number;
     public ssrc: number;
     public videoSsrc: number;
+    public rtxSsrc: number;
     public modes: string[];
     public secretkey: Uint8Array;
-    public server_id: string
 
     public screenShareConn: StreamConnection;
 
@@ -66,11 +66,14 @@ export class VoiceConnection {
         // make udp client
         this.udp = new VoiceUdp(this);
 
-        this.guild = guildId;
+        this.guildId = guildId;
         this.channelId = channelId;
         this.botId = botId;
-        this.server_id = guildId;
         this.ready = callback;
+    }
+
+    public get serverId(): string {
+        return this.guildId;
     }
 
     stop(): void {
@@ -142,6 +145,7 @@ export class VoiceConnection {
         this.port = d.port;
         this.modes = d.modes;
         this.videoSsrc = this.ssrc + 1; // todo: set it from packet streams object
+        this.rtxSsrc = this.ssrc + 2;
     }
 
     handleSession(d: any): void {
@@ -206,20 +210,20 @@ export class VoiceConnection {
     */
     identify(): void {
         this.sendOpcode(voiceOpCodes.identify, {
-            server_id: this.server_id,
+            server_id: this.serverId,
             user_id: this.botId,
             session_id: this.session_id,
             token: this.token,
             video: true,
             streams: [
-                {type:"screen", rid:"100",quality:100}
+                { type:"screen", rid:"100", quality:100 }
             ]
         });
     }
 
     resume(): void {
         this.sendOpcode(voiceOpCodes.resume, {
-            server_id: this.server_id,
+            server_id: this.serverId,
             session_id: this.session_id,
             token: this.token,
         });
@@ -256,7 +260,7 @@ export class VoiceConnection {
         this.sendOpcode(voiceOpCodes.sources, {
             audio_ssrc: this.ssrc,
             video_ssrc: bool ? this.videoSsrc : 0,
-            rtx_ssrc: bool ? this.ssrc + 2 : 0,
+            rtx_ssrc: bool ? this.rtxSsrc : 0,
             streams: [
                 { 
                     type:"video",
@@ -264,7 +268,7 @@ export class VoiceConnection {
                     ssrc: bool ? this.videoSsrc : 0,
                     active:true,
                     quality:100,
-                    rtx_ssrc:bool ? this.ssrc + 2 : 0,
+                    rtx_ssrc:bool ? this.rtxSsrc : 0,
                     max_bitrate:2500000,
                     max_framerate: streamOpts.fps,
                     max_resolution: {

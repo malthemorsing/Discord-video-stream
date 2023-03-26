@@ -1,3 +1,4 @@
+import { streamOpts } from "../StreamOpts";
 import { VoiceUdp } from "../voice/VoiceUdp";
 import { BaseMediaPacketizer, max_int16bit } from "./BaseMediaPacketizer";
 
@@ -31,8 +32,8 @@ export class VideoPacketizer extends BaseMediaPacketizer {
     }
 
     public override onFrameSent(): void {
-        // video RTP packet timestamp incremental value = 90kHz / 30 = 90,000Hz / 30 = 3000 (for 30 fps)
-        this.incrementTimestamp(3000);
+        // video RTP packet timestamp incremental value = 90,000Hz / fps
+        this.incrementTimestamp(90000 / streamOpts.fps);
         this.incrementPictureId();
     }
 

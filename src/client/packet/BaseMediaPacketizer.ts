@@ -26,7 +26,7 @@ export class BaseMediaPacketizer {
         return Buffer.alloc(1);
     }
 
-    public onFrameSent() {
+    public onFrameSent(): void {
         // override this
     }
 

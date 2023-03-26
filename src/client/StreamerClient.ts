@@ -58,16 +58,16 @@ export class StreamerClient extends Client {
             }
         } else if (event === "VOICE_SERVER_UPDATE") {
             // transfer voice server update to voice connection
-            if(data.guild_id != this.voiceConnection?.guild) return;
+            if(data.guild_id != this.voiceConnection?.guildId) return;
     
             this.voiceConnection?.setTokens(data.endpoint, data.token);
         } else if (event === "STREAM_CREATE") {
             const [type, guildId, channelId, userId] = data.stream_key.split(":");
     
-            if(this.voiceConnection?.guild != guildId) return;
+            if(this.voiceConnection?.guildId != guildId) return;
 
             if(userId === this.user.id) {
-                this.voiceConnection.screenShareConn.server_id = data.rtc_server_id;
+                this.voiceConnection.screenShareConn.serverId = data.rtc_server_id;
         
                 this.voiceConnection.screenShareConn.streamKey = data.stream_key;
                 this.voiceConnection.screenShareConn.setSession(this.voiceConnection.session_id);
@@ -75,7 +75,7 @@ export class StreamerClient extends Client {
         } else if (event === "STREAM_SERVER_UPDATE") {
             const [type, guildId, channelId, userId] = data.stream_key.split(":");
     
-            if(this.voiceConnection?.guild != guildId) return;
+            if(this.voiceConnection?.guildId != guildId) return;
     
             if(userId === this.user.id) {
                 this.voiceConnection.screenShareConn.setTokens(data.endpoint, data.token);
@@ -144,9 +144,9 @@ export class StreamerClient extends Client {
         return new Promise<VoiceUdp>((resolve, reject) => {
             if(!this._voiceConnection) reject('cannot start stream without first joining voice channel');
 
-            this.signalStream(this.voiceConnection.guild, this.voiceConnection.channelId);
+            this.signalStream(this.voiceConnection.guildId, this.voiceConnection.channelId);
 
-            this._voiceConnection.screenShareConn = new StreamConnection(this.voiceConnection.guild, this.user.id, this.voiceConnection.channelId, (voiceUdp) => {
+            this._voiceConnection.screenShareConn = new StreamConnection(this.voiceConnection.guildId, this.user.id, this.voiceConnection.channelId, (voiceUdp) => {
                 resolve(voiceUdp);
             });
         })

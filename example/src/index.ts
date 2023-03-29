@@ -1,10 +1,13 @@
-import { StreamerClient, command, streamLivestreamVideo, VoiceUdp, setStreamOpts, streamOpts } from "@dank074/discord-video-stream";
+import { Client } from "discord.js-selfbot-v13";
+import { command, streamLivestreamVideo, VoiceUdp, setStreamOpts, streamOpts } from "@dank074/discord-video-stream";
 import { launch, getStream } from 'puppeteer-stream';
 import config from "./config.json";
 import { Readable } from "stream";
 import { executablePath } from 'puppeteer';
 
-const client = new StreamerClient();
+const client = new Client();
+
+client.patchVoiceEvents(); //this is necessary to register event handlers
 
 setStreamOpts(
     config.streamOpts.width, 

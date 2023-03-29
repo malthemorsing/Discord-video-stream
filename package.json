@@ -1,6 +1,6 @@
 {
   "name": "@dank074/discord-video-stream",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Experiment for making video streaming work for discord selfbots",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -26,7 +26,7 @@
     "typescript": "^4.9.5"
   },
   "peerDependencies": {
-    "discord.js-selfbot-v13": "^2.12.1"
+    "discord.js-selfbot-v13": "2.x"
   },
   "scripts": {
     "build": "tsc"

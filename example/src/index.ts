@@ -1,16 +1,21 @@
-import { StreamerClient, command, streamLivestreamVideo, VoiceUdp, streamOpts } from "@dank074/discord-video-stream";
+import { Client } from "discord.js-selfbot-v13";
+import { command, streamLivestreamVideo, VoiceUdp, setStreamOpts, streamOpts } from "@dank074/discord-video-stream";
 import { launch, getStream } from 'puppeteer-stream';
 import config from "./config.json";
 import { Readable } from "stream";
 import { executablePath } from 'puppeteer';
 
-const client = new StreamerClient();
+const client = new Client();
 
-streamOpts.bitrateKbps = config.streamOpts.bitrateKbps;
-streamOpts.fps = config.streamOpts.fps;
-streamOpts.hardware_encoding = config.streamOpts.hardware_acc;
-streamOpts.height = config.streamOpts.height;
-streamOpts.width = config.streamOpts.width;
+client.patchVoiceEvents(); //this is necessary to register event handlers
+
+setStreamOpts(
+    config.streamOpts.width, 
+    config.streamOpts.height, 
+    config.streamOpts.fps, 
+    config.streamOpts.bitrateKbps, 
+    config.streamOpts.hardware_acc
+)
 
 // ready event
 client.on("ready", () => {

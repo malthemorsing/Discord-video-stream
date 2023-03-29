@@ -26,15 +26,21 @@ What I implemented and what I did not.
  - [X] Figure out rtp header extensions (discord specific) (discord seems to use one-byte RTP header extension https://www.rfc-editor.org/rfc/rfc8285.html#section-4.2)
 
 ## Usage
-Install the package:
+Install the package, alongside its peer-dependency discord.js-selfbot-v13:
 ```
-npm install @dank074/discord-video-stream
+npm install @dank074/discord-video-stream@latest
+npm install discord.js-selfbot-v13@latest
 ```
 
-Create a new streamer client:
+Create a new client, and patch its events to listen for voice gateway events:
 ```typescript
-const client = new StreamerClient();
+import { Client } from "discord.js-selfbot-v13";
+import "@dank074/discord-video-stream";
+
+const client = new Client();
 client.login('TOKEN HERE');
+
+client.patchVoiceEvents();
 ```
 
 Make client join a voice channel and create a stream:

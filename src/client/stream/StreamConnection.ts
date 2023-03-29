@@ -1,5 +1,5 @@
-import { VoiceConnection, voiceOpCodes } from "../voice/VoiceConnection";
-
+import { VoiceConnection } from "../voice/VoiceConnection";
+import { VoiceOpCodes } from "../voice/VoiceOpCodes";
 
 export class StreamConnection extends VoiceConnection
 {
@@ -7,7 +7,7 @@ export class StreamConnection extends VoiceConnection
     private _serverId: string;
 
     public override setSpeaking(speaking: boolean): void {
-        this.sendOpcode(voiceOpCodes.speaking, {
+        this.sendOpcode(VoiceOpCodes.speaking, {
             delay: 0,
             speaking: speaking ? 2 : 0,
             ssrc: this.ssrc

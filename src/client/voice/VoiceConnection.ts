@@ -1,27 +1,8 @@
 import WebSocket from 'ws';
-
 import { VoiceUdp } from "./VoiceUdp";
 import { streamOpts } from '../StreamOpts';
 import { StreamConnection } from '../stream/StreamConnection';
-
-export enum voiceOpCodes {
-    identify = 0,
-    select_protocol = 1,
-    ready = 2,
-    heartbeat = 3,
-    select_protocol_ack = 4,
-    speaking = 5,
-    heartbeat_ack = 6,
-    resume = 7,
-    hello = 8,
-    resumed = 9,
-    sources = 12,
-    client_disconnect = 13,
-    session_update = 14,
-    media_sink_wants = 15,
-    voice_backend_version = 16,
-    channel_options_update = 17
-}
+import { VoiceOpCodes } from './VoiceOpCodes';
 
 type VoiceConnectionStatus =
 {
@@ -159,7 +140,7 @@ export class VoiceConnection {
         this.ws.on('message', (data: any) => {
             const { op, d } = JSON.parse(data);
 
-            if (op == voiceOpCodes.ready) { // ready
+            if (op == VoiceOpCodes.ready) { // ready
                 this.handleReady(d);
                 this.sendVoice();
                 this.setVideoStatus(false);
@@ -167,19 +148,19 @@ export class VoiceConnection {
             else if (op >= 4000) {
                 console.error("Error voice connection", d);
             }
-            else if (op === voiceOpCodes.hello) {
+            else if (op === VoiceOpCodes.hello) {
                 this.setupHeartbeat(d.heartbeat_interval);
             }
-            else if (op === voiceOpCodes.select_protocol_ack) { // session description
+            else if (op === VoiceOpCodes.select_protocol_ack) { // session description
                 this.handleSession(d);
             }
-            else if (op === voiceOpCodes.speaking) {
+            else if (op === VoiceOpCodes.speaking) {
                 // ignore speaking updates
             }
-            else if (op === voiceOpCodes.heartbeat_ack) {
+            else if (op === VoiceOpCodes.heartbeat_ack) {
                 // ignore heartbeat acknowledgements
             }
-            else if (op === voiceOpCodes.resumed) {
+            else if (op === VoiceOpCodes.resumed) {
                 this.status.started = true;
                 this.udp.ready = true;
             }
@@ -194,7 +175,7 @@ export class VoiceConnection {
             clearInterval(this.interval);
         }
         this.interval = setInterval(() => {
-            this.sendOpcode(voiceOpCodes.heartbeat, 42069);
+            this.sendOpcode(VoiceOpCodes.heartbeat, 42069);
         }, interval);
     }
 
@@ -209,7 +190,7 @@ export class VoiceConnection {
     ** identifies with media server with credentials
     */
     identify(): void {
-        this.sendOpcode(voiceOpCodes.identify, {
+        this.sendOpcode(VoiceOpCodes.identify, {
             server_id: this.serverId,
             user_id: this.botId,
             session_id: this.session_id,
@@ -222,7 +203,7 @@ export class VoiceConnection {
     }
 
     resume(): void {
-        this.sendOpcode(voiceOpCodes.resume, {
+        this.sendOpcode(VoiceOpCodes.resume, {
             server_id: this.serverId,
             session_id: this.session_id,
             token: this.token,
@@ -235,7 +216,7 @@ export class VoiceConnection {
     ** Uses opus for audio
     */
     setProtocols(): void {
-        this.sendOpcode(voiceOpCodes.select_protocol, {
+        this.sendOpcode(VoiceOpCodes.select_protocol, {
             protocol: "udp",
             codecs: [
                 { name: "opus", type: "audio", priority: 1000, payload_type: 120 },
@@ -257,7 +238,7 @@ export class VoiceConnection {
     ** video and rtx sources are set to ssrc + 1 and ssrc + 2
     */
     public setVideoStatus(bool: boolean): void {
-        this.sendOpcode(voiceOpCodes.sources, {
+        this.sendOpcode(VoiceOpCodes.sources, {
             audio_ssrc: this.ssrc,
             video_ssrc: bool ? this.videoSsrc : 0,
             rtx_ssrc: bool ? this.rtxSsrc : 0,
@@ -286,7 +267,7 @@ export class VoiceConnection {
     ** speaking -> speaking status on or off
     */
    public setSpeaking(speaking: boolean): void {
-        this.sendOpcode(voiceOpCodes.speaking, {
+        this.sendOpcode(VoiceOpCodes.speaking, {
             delay: 0,
             speaking: speaking ? 1 : 0,
             ssrc: this.ssrc

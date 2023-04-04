@@ -25,6 +25,11 @@ What I implemented and what I did not.
 #### Extras
  - [X] Figure out rtp header extensions (discord specific) (discord seems to use one-byte RTP header extension https://www.rfc-editor.org/rfc/rfc8285.html#section-4.2)
 
+## Requirements
+Ffmpeg is required for the usage of this package. If you are on linux you can easily install ffmpeg from your distribution's package manager.
+
+If you are on Windows, you can download it from the official ffmpeg website: https://ffmpeg.org/download.html
+
 ## Usage
 Install the package, alongside its peer-dependency discord.js-selfbot-v13:
 ```

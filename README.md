@@ -25,6 +25,26 @@ What I implemented and what I did not.
 #### Extras
  - [X] Figure out rtp header extensions (discord specific) (discord seems to use one-byte RTP header extension https://www.rfc-editor.org/rfc/rfc8285.html#section-4.2)
 
+Extensions supported by Discord (taken from the webrtc sdp exchange)
+```
+"a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level"
+"a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"
+"a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01"
+"a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid"
+"a=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"
+"a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type"
+"a=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing"
+"a=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space"
+"a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id"
+"a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id"
+"a=extmap:13 urn:3gpp:video-orientation"
+"a=extmap:14 urn:ietf:params:rtp-hdrext:toffset"
+```
+## Requirements
+Ffmpeg is required for the usage of this package. If you are on linux you can easily install ffmpeg from your distribution's package manager.
+
+If you are on Windows, you can download it from the official ffmpeg website: https://ffmpeg.org/download.html
+
 ## Usage
 Install the package, alongside its peer-dependency discord.js-selfbot-v13:
 ```

@@ -135,7 +135,7 @@ Client.prototype.signalVideo = function(
     channel_id: string,
     video_enabled: boolean
 ): void {
-    this.sendOpcode(GatewayOpCodes.voice_state_update, {
+    this.sendOpcode(GatewayOpCodes.VOICE_STATE_UPDATE, {
         guild_id,
         channel_id,
         self_mute: false,
@@ -148,21 +148,21 @@ Client.prototype.signalStream = function(
     guild_id: string,
     channel_id: string
 ): void {
-    this.sendOpcode(GatewayOpCodes.stream_create, {
+    this.sendOpcode(GatewayOpCodes.STREAM_CREATE, {
         type: "guild",
         guild_id,
         channel_id,
         preferred_region: null,
     });
 
-    this.sendOpcode(GatewayOpCodes.stream_set_paused, {
+    this.sendOpcode(GatewayOpCodes.STREAM_SET_PAUSED, {
         stream_key: `guild:${guild_id}:${channel_id}:${this.user.id}`,
         paused: false,
     });
 };
 
 Client.prototype.signalLeaveVoice = function(): void {
-    this.sendOpcode(GatewayOpCodes.voice_state_update, {
+    this.sendOpcode(GatewayOpCodes.VOICE_STATE_UPDATE, {
         guild_id: null,
         channel_id: null,
         self_mute: true,

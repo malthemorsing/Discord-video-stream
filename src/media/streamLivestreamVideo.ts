@@ -8,9 +8,9 @@ import { StreamOutput } from '@dank074/fluent-ffmpeg-multistream-ts';
 import { streamOpts } from '../client/StreamOpts';
 import { Readable } from 'stream';
 
-export let command: ffmpeg.FfmpegCommand = undefined;
+export let command: ffmpeg.FfmpegCommand;
 
-export function streamLivestreamVideo(url: string | Readable, voiceUdp: VoiceUdp) {
+export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceUdp) {
     return new Promise<string>((resolve, reject) => {
         const videoStream: VideoStream = new VideoStream( voiceUdp);
         
@@ -42,14 +42,14 @@ export function streamLivestreamVideo(url: string | Readable, voiceUdp: VoiceUdp
         let isHttpUrl = false;
         let isHls = false;
 
-        if(typeof url === "string")
+        if(typeof input === "string")
         {
-            isHttpUrl = url.startsWith('http') || url.startsWith('https');
-            isHls = url.includes('m3u');
+            isHttpUrl = input.startsWith('http') || input.startsWith('https');
+            isHls = input.includes('m3u');
         }        
 
         try {
-            command = ffmpeg(url)
+            command = ffmpeg(input)
             .inputOption('-re')
             .addOption('-loglevel', '0')
             .addOption('-fflags', 'nobuffer')
@@ -99,6 +99,27 @@ export function streamLivestreamVideo(url: string | Readable, voiceUdp: VoiceUdp
             reject("cannot play video " + e.message);
         }
     })
+}
+
+export function getInputMetadata(input: string | Readable): Promise<ffmpeg.FfprobeData> {
+    return new Promise((resolve,reject) => {
+        const instance = ffmpeg(input).on('error', (err, stdout, stderr) => reject(err));
+        
+        instance.ffprobe((err, metadata) => {
+            if(err) reject(err);
+            instance.removeAllListeners();
+            resolve(metadata);
+            instance.kill('SIGINT');
+        });
+    })
+}
+
+export function inputHasAudio(metadata: ffmpeg.FfprobeData) {
+    return metadata.streams.some( (value) => value.codec_type === 'audio');
+}
+
+export function inputHasVideo(metadata: ffmpeg.FfprobeData) {
+    return metadata.streams.some( (value) => value.codec_type === 'video');
 }
 
 type map = {

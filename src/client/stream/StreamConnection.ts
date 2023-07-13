@@ -7,7 +7,7 @@ export class StreamConnection extends VoiceConnection
     private _serverId: string;
 
     public override setSpeaking(speaking: boolean): void {
-        this.sendOpcode(VoiceOpCodes.speaking, {
+        this.sendOpcode(VoiceOpCodes.SPEAKING, {
             delay: 0,
             speaking: speaking ? 2 : 0,
             ssrc: this.ssrc

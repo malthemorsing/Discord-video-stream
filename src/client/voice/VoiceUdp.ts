@@ -23,14 +23,14 @@ function parseLocalPacket(message: Buffer) {
 
 export class VoiceUdp {
     private _voiceConnection: VoiceConnection;
-    private nonce: number;
-    private socket: udpCon.Socket;
+    private _nonce: number;
+    private _socket: udpCon.Socket;
     private _ready: boolean;
     private _audioPacketizer: AudioPacketizer;
     private _videoPacketizer: VideoPacketizer;
 
     constructor(voiceConnection: VoiceConnection) {
-        this.nonce = 0;
+        this._nonce = 0;
 
         this._voiceConnection = voiceConnection;
         this._audioPacketizer = new AudioPacketizer(this);
@@ -39,10 +39,10 @@ export class VoiceUdp {
 
     public getNewNonceBuffer(): Buffer {
         const nonceBuffer = Buffer.alloc(24)
-        this.nonce++;
-        if (this.nonce > max_int32bit) this.nonce = 0;
+        this._nonce++;
+        if (this._nonce > max_int32bit) this._nonce = 0;
         
-        nonceBuffer.writeUInt32BE(this.nonce, 0);
+        nonceBuffer.writeUInt32BE(this._nonce, 0);
         return nonceBuffer;
     }
 
@@ -89,7 +89,7 @@ export class VoiceUdp {
     private sendPacket(packet: any): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             try {
-            this.socket.send(packet, 0, packet.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {
+            this._socket.send(packet, 0, packet.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {
                 if (error) {
                     console.log("ERROR", error);
                     reject(error);
@@ -115,20 +115,20 @@ export class VoiceUdp {
     public stop(): void {
         try {
             this.ready = false;
-            this.socket.disconnect();
+            this._socket.disconnect();
         }catch(e) {}
     }
 
     public createUdp(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            this.socket = udpCon.createSocket('udp4');
+            this._socket = udpCon.createSocket('udp4');
 
-            this.socket.on('error', (error: Error) => {
+            this._socket.on('error', (error: Error) => {
                 console.error("Error connecting to media udp server", error);
                 reject(error);
             });
 
-            this.socket.once('message', (message) => {
+            this._socket.once('message', (message) => {
                 if (message.readUInt16BE(0) !== 2) {
                     reject('wrong handshake packet for udp')
                 }
@@ -141,7 +141,7 @@ export class VoiceUdp {
                 } catch(e) { reject(e) }
                 
                 resolve();
-                this.socket.on('message', this.handleIncoming);
+                this._socket.on('message', this.handleIncoming);
             });
 
             const blank = Buffer.alloc(74);
@@ -150,7 +150,7 @@ export class VoiceUdp {
 			blank.writeUInt16BE(70, 2);
             blank.writeUInt32BE(this._voiceConnection.ssrc, 4);
 
-            this.socket.send(blank, 0, blank.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {
+            this._socket.send(blank, 0, blank.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {
                 if (error) {
                     reject(error)
                 }

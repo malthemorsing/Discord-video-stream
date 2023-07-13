@@ -140,7 +140,7 @@ export class VoiceConnection {
         this.ws.on('message', (data: any) => {
             const { op, d } = JSON.parse(data);
 
-            if (op == VoiceOpCodes.ready) { // ready
+            if (op == VoiceOpCodes.READY) { // ready
                 this.handleReady(d);
                 this.sendVoice();
                 this.setVideoStatus(false);
@@ -148,19 +148,19 @@ export class VoiceConnection {
             else if (op >= 4000) {
                 console.error("Error voice connection", d);
             }
-            else if (op === VoiceOpCodes.hello) {
+            else if (op === VoiceOpCodes.HELLO) {
                 this.setupHeartbeat(d.heartbeat_interval);
             }
-            else if (op === VoiceOpCodes.select_protocol_ack) { // session description
+            else if (op === VoiceOpCodes.SELECT_PROTOCOL_ACK) { // session description
                 this.handleSession(d);
             }
-            else if (op === VoiceOpCodes.speaking) {
+            else if (op === VoiceOpCodes.SPEAKING) {
                 // ignore speaking updates
             }
-            else if (op === VoiceOpCodes.heartbeat_ack) {
+            else if (op === VoiceOpCodes.HEARTBEAT_ACK) {
                 // ignore heartbeat acknowledgements
             }
-            else if (op === VoiceOpCodes.resumed) {
+            else if (op === VoiceOpCodes.RESUMED) {
                 this.status.started = true;
                 this.udp.ready = true;
             }
@@ -175,7 +175,7 @@ export class VoiceConnection {
             clearInterval(this.interval);
         }
         this.interval = setInterval(() => {
-            this.sendOpcode(VoiceOpCodes.heartbeat, 42069);
+            this.sendOpcode(VoiceOpCodes.HEARTBEAT, 42069);
         }, interval);
     }
 
@@ -190,7 +190,7 @@ export class VoiceConnection {
     ** identifies with media server with credentials
     */
     identify(): void {
-        this.sendOpcode(VoiceOpCodes.identify, {
+        this.sendOpcode(VoiceOpCodes.IDENTIFY, {
             server_id: this.serverId,
             user_id: this.botId,
             session_id: this.session_id,
@@ -203,7 +203,7 @@ export class VoiceConnection {
     }
 
     resume(): void {
-        this.sendOpcode(VoiceOpCodes.resume, {
+        this.sendOpcode(VoiceOpCodes.RESUME, {
             server_id: this.serverId,
             session_id: this.session_id,
             token: this.token,
@@ -216,7 +216,7 @@ export class VoiceConnection {
     ** Uses opus for audio
     */
     setProtocols(): void {
-        this.sendOpcode(VoiceOpCodes.select_protocol, {
+        this.sendOpcode(VoiceOpCodes.SELECT_PROTOCOL, {
             protocol: "udp",
             codecs: [
                 { name: "opus", type: "audio", priority: 1000, payload_type: 120 },
@@ -238,7 +238,7 @@ export class VoiceConnection {
     ** video and rtx sources are set to ssrc + 1 and ssrc + 2
     */
     public setVideoStatus(bool: boolean): void {
-        this.sendOpcode(VoiceOpCodes.sources, {
+        this.sendOpcode(VoiceOpCodes.VIDEO, {
             audio_ssrc: this.ssrc,
             video_ssrc: bool ? this.videoSsrc : 0,
             rtx_ssrc: bool ? this.rtxSsrc : 0,
@@ -267,7 +267,7 @@ export class VoiceConnection {
     ** speaking -> speaking status on or off
     */
    public setSpeaking(speaking: boolean): void {
-        this.sendOpcode(VoiceOpCodes.speaking, {
+        this.sendOpcode(VoiceOpCodes.SPEAKING, {
             delay: 0,
             speaking: speaking ? 1 : 0,
             ssrc: this.ssrc

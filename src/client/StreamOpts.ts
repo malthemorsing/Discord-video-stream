@@ -1,9 +1,9 @@
 export interface StreamOpts {
-    width: number;
-    height: number;
-    fps: number;
-    bitrateKbps: number;
-    hardware_encoding: boolean;
+    width?: number;
+    height?: number;
+    fps?: number;
+    bitrateKbps?: number;
+    hardware_encoding?: boolean;
 }
 
 export const streamOpts: StreamOpts = {
@@ -14,16 +14,10 @@ export const streamOpts: StreamOpts = {
     hardware_encoding: false
 }
 
-export const setStreamOpts = (
-    width?: number, 
-    height?: number, 
-    fps? : number, 
-    bitrateKbps?: number, 
-    hardware_encoding?: boolean
-) => {
-    streamOpts.width = width ?? streamOpts.width;
-    streamOpts.height = height ?? streamOpts.height;
-    streamOpts.fps = fps ?? streamOpts.fps;
-    streamOpts.bitrateKbps = bitrateKbps ?? streamOpts.bitrateKbps;
-    streamOpts.hardware_encoding = hardware_encoding ?? streamOpts.hardware_encoding;
+export const setStreamOpts = (opts: StreamOpts) => {
+    streamOpts.width = opts.width ?? streamOpts.width;
+    streamOpts.height = opts.height ?? streamOpts.height;
+    streamOpts.fps = opts.fps ?? streamOpts.fps;
+    streamOpts.bitrateKbps = opts.bitrateKbps ?? streamOpts.bitrateKbps;
+    streamOpts.hardware_encoding = opts.hardware_encoding ?? streamOpts.hardware_encoding;
 }

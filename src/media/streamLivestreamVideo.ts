@@ -10,24 +10,15 @@ import { Readable } from 'stream';
 
 export let command: ffmpeg.FfmpegCommand;
 
-export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceUdp) {
+export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceUdp, includeAudio = true) {
     return new Promise<string>((resolve, reject) => {
         const videoStream: VideoStream = new VideoStream( voiceUdp);
         
         const ivfStream = new IvfTransformer();
 
-        const audioStream: AudioStream = new AudioStream( voiceUdp );
-        
-        // make opus stream
-        const opus = new prism.opus.Encoder({ channels: 2, rate: 48000, frameSize: 960 });
-
         // get header frame time
         ivfStream.on("header", (header) => {
             videoStream.setSleepTime(getFrameDelayInMilliseconds(header));
-        });
-
-        audioStream.on("finish", () => {
-            resolve("finished audio");
         });
         
         videoStream.on("finish", () => {
@@ -69,13 +60,26 @@ export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceU
             .fpsOutput(streamOpts.fps)
             .videoBitrate(`${streamOpts.bitrateKbps}k`)
             .format('ivf')
-            .outputOption('-deadline', 'realtime')
-            .output(StreamOutput(opus).url, { end: false})
-            .noVideo()
-            .audioChannels(2)
-            .audioFrequency(48000)
-            //.audioBitrate('128k')
-            .format('s16le');
+            .outputOption('-deadline', 'realtime');
+
+            ivfStream.pipe(videoStream, { end: false});
+            
+            if(includeAudio) {
+                const audioStream: AudioStream = new AudioStream( voiceUdp );
+        
+                // make opus stream
+                const opus = new prism.opus.Encoder({ channels: 2, rate: 48000, frameSize: 960 });
+            
+                command
+                .output(StreamOutput(opus).url, { end: false})
+                .noVideo()
+                .audioChannels(2)
+                .audioFrequency(48000)
+                //.audioBitrate('128k')
+                .format('s16le');
+
+                opus.pipe(audioStream, {end: false});
+            }
             
             if(streamOpts.hardware_encoding) command.inputOption('-hwaccel', 'auto');
             
@@ -88,10 +92,6 @@ export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceU
             }
             
             command.run();
-            
-            ivfStream.pipe(videoStream, { end: false});
-
-            opus.pipe(audioStream, {end: false});
         } catch(e) {
             //audioStream.end();
             //videoStream.end();

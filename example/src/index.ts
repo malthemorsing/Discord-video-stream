@@ -1,5 +1,5 @@
 import { Client } from "discord.js-selfbot-v13";
-import { command, streamLivestreamVideo, VoiceUdp, setStreamOpts, streamOpts } from "@dank074/discord-video-stream";
+import { command, streamLivestreamVideo, VoiceUdp, setStreamOpts, streamOpts, getInputMetadata, inputHasAudio } from "@dank074/discord-video-stream";
 import { launch, getStream } from 'puppeteer-stream';
 import config from "./config.json";
 import { Readable } from "stream";
@@ -76,12 +76,23 @@ client.on("messageCreate", async (msg) => {
 client.login(config.token);
 
 async function playVideo(video: string, udpConn: VoiceUdp) {
+    let includeAudio = true;
+
+    try {
+        const metadata = await getInputMetadata(video);
+        //console.log(JSON.stringify(metadata.streams));
+        includeAudio = inputHasAudio(metadata);
+    } catch(e) {
+        console.log(e);
+        return;
+    }
+
     console.log("Started playing video");
 
     udpConn.voiceConnection.setSpeaking(true);
     udpConn.voiceConnection.setVideoStatus(true);
     try {
-        const res = await streamLivestreamVideo(video, udpConn);
+        const res = await streamLivestreamVideo(video, udpConn, includeAudio);
 
         console.log("Finished playing video " + res);
     } catch (e) {

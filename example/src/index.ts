@@ -9,13 +9,13 @@ const client = new Client();
 
 client.patchVoiceEvents(); //this is necessary to register event handlers
 
-setStreamOpts(
-    config.streamOpts.width, 
-    config.streamOpts.height, 
-    config.streamOpts.fps, 
-    config.streamOpts.bitrateKbps, 
-    config.streamOpts.hardware_acc
-)
+setStreamOpts({
+    width: config.streamOpts.width, 
+    height: config.streamOpts.height, 
+    fps: config.streamOpts.fps, 
+    bitrateKbps: config.streamOpts.bitrateKbps, 
+    hardware_encoding: config.streamOpts.hardware_acc
+})
 
 // ready event
 client.on("ready", () => {

@@ -60,8 +60,8 @@ export class VoiceConnection {
     stop(): void {
         clearInterval(this.interval);
         this.status.started = false;
-        this.ws.close();
-        this.udp.stop();
+        this.ws?.close();
+        this.udp?.stop();
     }
 
     setSession(session_id: string): void {

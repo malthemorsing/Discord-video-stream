@@ -10,6 +10,7 @@ declare module "discord.js-selfbot-v13" {
         joinVoice(guild_id: string, channel_id: string): Promise<VoiceUdp>;
         createStream(): Promise<VoiceUdp>;
         leaveVoice(): void;
+        stopStream(): void;
         signalVideo(
             guild_id: string,
             channel_id: string,
@@ -120,6 +121,18 @@ Client.prototype.createStream = function(): Promise<VoiceUdp> {
         );
     });
 };
+
+Client.prototype.stopStream = function(): void {
+    const stream = this.voiceConnection?.screenShareConn;
+
+    if(!stream) return;
+
+    stream.stop();
+
+    this.signalStopStream(stream.guildId, stream.channelId);
+
+    this.voiceConnection.screenShareConn = undefined;
+}
 
 Client.prototype.leaveVoice = function(): void {
     this.voiceConnection?.stop();

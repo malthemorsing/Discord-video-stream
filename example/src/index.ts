@@ -1,4 +1,4 @@
-import { Client } from "discord.js-selfbot-v13";
+import { Client, StageChannel } from "discord.js-selfbot-v13";
 import { command, streamLivestreamVideo, VoiceUdp, setStreamOpts, streamOpts, getInputMetadata, inputHasAudio } from "@dank074/discord-video-stream";
 import { launch, getStream } from 'puppeteer-stream';
 import config from "./config.json";
@@ -34,21 +34,41 @@ client.on("messageCreate", async (msg) => {
         const args = parseArgs(msg.content)
         if (!args) return;
 
-        console.log(`Attempting to join voice channel ${args.guildId}/${args.channelId}`);
-        await client.joinVoice(args.guildId, args.channelId);
+        const channel = msg.author.voice.channel;
+
+        if(!channel) return;
+
+        console.log(`Attempting to join voice channel ${msg.guildId}/${channel.id}`);
+        await client.joinVoice(msg.guildId, channel.id);
+
+        if(channel instanceof StageChannel)
+        {
+            await client.user.voice.setSuppressed(false);
+        }
 
         const streamUdpConn = await client.createStream();
 
-        playVideo(args.url, streamUdpConn);
+        await playVideo(args.url, streamUdpConn);
+
+        client.stopStream();
         return;
     } else if (msg.content.startsWith("$play-cam")) {
         const args = parseArgs(msg.content);
         if (!args) return;
 
-        console.log(`Attempting to join voice channel ${args.guildId}/${args.channelId}`);
-        const vc = await client.joinVoice(args.guildId, args.channelId);
+        const channel = msg.author.voice.channel;
 
-        client.signalVideo(args.guildId, args.channelId, true);
+        if(!channel) return;
+
+        console.log(`Attempting to join voice channel ${msg.guildId}/${channel.id}`);
+        const vc = await client.joinVoice(msg.guildId, channel.id);
+
+        if(channel instanceof StageChannel)
+        {
+            await client.user.voice.setSuppressed(false);
+        }
+
+        client.signalVideo(msg.guildId, channel.id, true);
 
         playVideo(args.url, vc);
 
@@ -57,12 +77,23 @@ client.on("messageCreate", async (msg) => {
         const args = parseArgs(msg.content)
         if (!args) return;
 
-        console.log(`Attempting to join voice channel ${args.guildId}/${args.channelId}`);
-        await client.joinVoice(args.guildId, args.channelId);
+        const channel = msg.author.voice.channel;
 
+        if(!channel) return;
+
+        console.log(`Attempting to join voice channel ${msg.guildId}/${channel.id}`);
+        await client.joinVoice(msg.guildId, channel.id);
+
+        if(channel instanceof StageChannel)
+        {
+            await client.user.voice.setSuppressed(false);
+        }
+        
         const streamUdpConn = await client.createStream();
 
-        streamPuppeteer(args.url, streamUdpConn);
+        await streamPuppeteer(args.url, streamUdpConn);
+
+        client.stopStream();
 
         return;
     } else if (msg.content.startsWith("$disconnect")) {
@@ -70,13 +101,13 @@ client.on("messageCreate", async (msg) => {
 
         client.leaveVoice();
     } else if(msg.content.startsWith("$stop-stream")) {
-        command?.kill('SINGINT');
+        command?.kill('SIGINT');
 
         const stream = client.voiceConnection?.screenShareConn;
 
         if(!stream) return;
 
-        client.signalStopStream(stream.guildId, stream.channelId);
+        client.stopStream();
     }
 });
 
@@ -110,8 +141,6 @@ async function playVideo(video: string, udpConn: VoiceUdp) {
         udpConn.voiceConnection.setVideoStatus(false);
     }
     command?.kill("SIGINT");
-
-    client.leaveVoice();
 }
 
 async function streamPuppeteer(url: string, udpConn: VoiceUdp) {
@@ -143,32 +172,17 @@ async function streamPuppeteer(url: string, udpConn: VoiceUdp) {
         udpConn.voiceConnection.setVideoStatus(false);
     }
     command?.kill("SIGINT");
-
-    client.leaveVoice();
 }
 
 function parseArgs(message: string): Args | undefined {
     const args = message.split(" ");
-    if (args.length < 3) return;
+    if (args.length < 2) return;
 
     const url = args[1];
 
-    const channelUrl = args[2].split("/");
-
-    if (channelUrl.length < 6) {
-        console.log("invalid url");
-        return;
-    }
-
-    const guildId = channelUrl[4];
-
-    const channelId = channelUrl[5];
-
-    return { url, guildId, channelId }
+    return { url }
 }
 
 type Args = {
     url: string;
-    guildId: string;
-    channelId: string;
 }

@@ -95,28 +95,25 @@ try {
 1. Configure your `config.json` with your accepted authors ids, and your self token
 2. Generate js files with ```npm run build```
 3. Start program with: ```npm run start```
-3. Start streaming with commands: 
+4. Join a voice channel
+5. Start streaming with commands: 
 
 for go-live
 ```
-$play-live <Direct video link> <Voice channel Url>
+$play-live <Direct video link>
 ```
 or for cam
 ```
-$play-cam <Direct video link> <Voice channel Url>
+$play-cam <Direct video link>
 ```
 or for screensharing using puppeteer
 ```
-$play-screen <website url> <Voice channel url>
+$play-screen <website url>
 ```
 for example:
 ```
-$play-live http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4 https://discord.com/channels/<guild_id>/<channel_id>
+$play-live http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4
 ```
-
-You can get the channel url by right clicking the voice channel and selecting `Copy Link`
-
-![image](https://user-images.githubusercontent.com/25986048/219265909-8b3f598b-1dd9-40a8-b0ec-acf0bcc4dfd8.png)
 
 ## FAQS
 - Can I stream on existing voice connection (CAM) and in a go-live connection simultaneously?

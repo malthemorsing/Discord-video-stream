@@ -115,7 +115,7 @@ export class VoiceUdp {
     public stop(): void {
         try {
             this.ready = false;
-            this._socket.disconnect();
+            this._socket?.disconnect();
         }catch(e) {}
     }
 

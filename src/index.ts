@@ -16,6 +16,7 @@ declare module "discord.js-selfbot-v13" {
             video_enabled: boolean
         ): void;
         signalStream(guild_id: string, channel_id: string): void;
+        signalStopStream(guild_id: string, channel_id: string): void;
         signalLeaveVoice(): void;
         patchVoiceEvents(): void;
     }
@@ -158,6 +159,12 @@ Client.prototype.signalStream = function(
     this.sendOpcode(GatewayOpCodes.STREAM_SET_PAUSED, {
         stream_key: `guild:${guild_id}:${channel_id}:${this.user.id}`,
         paused: false,
+    });
+};
+
+Client.prototype.signalStopStream = function(guild_id: string, channel_id: string): void {
+    this.sendOpcode(GatewayOpCodes.STREAM_DELETE, {
+        stream_key: `guild:${guild_id}:${channel_id}:${this.user.id}`
     });
 };
 

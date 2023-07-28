@@ -69,6 +69,14 @@ client.on("messageCreate", async (msg) => {
         command?.kill("SIGINT");
 
         client.leaveVoice();
+    } else if(msg.content.startsWith("$stop-stream")) {
+        command?.kill('SINGINT');
+
+        const stream = client.voiceConnection?.screenShareConn;
+
+        if(!stream) return;
+
+        client.signalStopStream(stream.guildId, stream.channelId);
     }
 });
 

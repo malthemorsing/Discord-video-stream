@@ -12,7 +12,7 @@ What I implemented and what I did not.
 #### Video codecs
  - [X] VP8
  - [ ] VP9
- - [ ] H.264
+ - [X] H.264
 
 #### Packet types
  - [X] RTP (sending of realtime data)

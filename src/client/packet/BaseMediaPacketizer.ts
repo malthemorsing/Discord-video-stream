@@ -21,16 +21,20 @@ export class BaseMediaPacketizer {
         this._extensionEnabled = extensionEnabled;;
     }
 
-    public createPacket(chunk: any, isLastPacket = true, isFirstPacket = true): Buffer {
+    public sendFrame(frame:any): void {
         // override this
-        return Buffer.alloc(1);
     }
 
     public onFrameSent(): void {
         // override this
     }
 
-    public partitionVideoData(data: any): any[] {
+    /**
+     * Partitions a buffer into chunks of length this.mtu
+     * @param data buffer to be partitioned
+     * @returns array of chunks
+     */
+    public partitionDataMTUSizedChunks(data: any): any[] {
         let i = 0;
         let len = data.length;
     

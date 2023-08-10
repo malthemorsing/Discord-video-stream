@@ -220,8 +220,8 @@ export class VoiceConnection {
             protocol: "udp",
             codecs: [
                 { name: "opus", type: "audio", priority: 1000, payload_type: 120 },
-                //{ name: "H264", type: "video", priority: 1000, payload_type: 101, rtx_payload_type: 102},
-                { name: "VP8", type: "video", priority: 3000, payload_type: 103, rtx_payload_type: 104, encode: true, decode: true }
+                { name: streamOpts.video_codec, type: "video", priority: 1000, payload_type: 101, rtx_payload_type: 102, encode: true, decode: true}
+                //{ name: "VP8", type: "video", priority: 3000, payload_type: 103, rtx_payload_type: 104, encode: true, decode: true }
                 //{ name: "VP9", type: "video", priority: 3000, payload_type: 105, rtx_payload_type: 106 },
             ],
             data: {

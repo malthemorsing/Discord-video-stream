@@ -1,3 +1,4 @@
 export * from './AudioPacketizer';
 export * from './BaseMediaPacketizer';
-export * from './VideoPacketizer';
+export * from './VideoPacketizerVP8';
+export * from './VideoPacketizerH264';

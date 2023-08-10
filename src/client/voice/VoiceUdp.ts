@@ -1,9 +1,11 @@
 import udpCon from 'dgram';
 import { isIPv4 } from 'net';
 import { AudioPacketizer } from '../packet/AudioPacketizer';
-import { max_int32bit } from '../packet/BaseMediaPacketizer';
-import { VideoPacketizer } from '../packet/VideoPacketizer';
+import { BaseMediaPacketizer, max_int32bit } from '../packet/BaseMediaPacketizer';
+import { VideoPacketizerVP8 } from '../packet/VideoPacketizerVP8';
 import { VoiceConnection } from './VoiceConnection';
+import { streamOpts } from '../StreamOpts';
+import { VideoPacketizerH264 } from '../packet/VideoPacketizerH264';
 
 // credit to discord.js
 function parseLocalPacket(message: Buffer) {
@@ -26,15 +28,16 @@ export class VoiceUdp {
     private _nonce: number;
     private _socket: udpCon.Socket;
     private _ready: boolean;
-    private _audioPacketizer: AudioPacketizer;
-    private _videoPacketizer: VideoPacketizer;
+    private _audioPacketizer: BaseMediaPacketizer;
+    private _videoPacketizer: BaseMediaPacketizer;
 
     constructor(voiceConnection: VoiceConnection) {
         this._nonce = 0;
 
         this._voiceConnection = voiceConnection;
         this._audioPacketizer = new AudioPacketizer(this);
-        this._videoPacketizer = new VideoPacketizer(this);
+        if(streamOpts.video_codec === 'VP8') this._videoPacketizer = new VideoPacketizerVP8(this);
+        else this._videoPacketizer = new VideoPacketizerH264(this);
     }
 
     public getNewNonceBuffer(): Buffer {
@@ -46,11 +49,11 @@ export class VoiceUdp {
         return nonceBuffer;
     }
 
-    public get audioPacketizer(): AudioPacketizer {
+    public get audioPacketizer(): BaseMediaPacketizer {
         return this._audioPacketizer;
     }
 
-    public get videoPacketizer(): VideoPacketizer {
+    public get videoPacketizer(): BaseMediaPacketizer {
         return this._videoPacketizer;
     }
 
@@ -60,33 +63,16 @@ export class VoiceUdp {
 
     public sendAudioFrame(frame: any): void{
         if(!this.ready) return;
-
-       const packet = this.audioPacketizer.createPacket(frame);
-        this.sendPacket(packet);
-
-        this.audioPacketizer.onFrameSent();
+        this.audioPacketizer.sendFrame(frame);
     }
 
-    /**
-     * Sends packets after partitioning the video frame into
-     * MTU-sized chunks
-     * @param frame 
-     */
     public sendVideoFrame(frame: any): void {
         if(!this.ready) return;
 
-        const data = this.videoPacketizer.partitionVideoData(frame);
-
-        for (let i = 0; i < data.length; i++) {
-            const packet = this.videoPacketizer.createPacket(data[i], i === (data.length - 1), i === 0);
-
-            this.sendPacket(packet);
-        }
-
-        this.videoPacketizer.onFrameSent();
+        this.videoPacketizer.sendFrame(frame);
     }
 
-    private sendPacket(packet: any): Promise<void> {
+    public sendPacket(packet: any): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             try {
             this._socket.send(packet, 0, packet.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {

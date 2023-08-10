@@ -90,7 +90,7 @@ export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceU
                 opus.pipe(audioStream, {end: false});
             }
             
-            if(streamOpts.hardware_encoding) command.inputOption('-hwaccel', 'auto');
+            if(streamOpts.hardware_acceleration) command.inputOption('-hwaccel', 'auto');
             
             if(isHttpUrl) {
                 command.inputOption('-headers', 

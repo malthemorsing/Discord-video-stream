@@ -2,7 +2,7 @@
 Fork: [Discord-video-experiment](https://github.com/mrjvs/Discord-video-experiment)
 
 ## Features
- - Playing vp8 video in a voice channel (`go live`, or webcam video)
+ - Playing vp8 or h264 video in a voice channel (`go live`, or webcam video)
  - Transcoding video to vp8 and audio to opus (using ffmpeg)
  - Screensharing using Puppeteer
 

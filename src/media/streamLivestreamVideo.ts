@@ -6,24 +6,22 @@ import { AudioStream } from "./audioStream";
 import { VoiceUdp } from '../client/voice/VoiceUdp';
 import { StreamOutput } from '@dank074/fluent-ffmpeg-multistream-ts';
 import { streamOpts } from '../client/StreamOpts';
-import { Readable } from 'stream';
+import { Readable, Transform } from 'stream';
+import { H264NalSplitter } from './H264NalSplitter';
 
 export let command: ffmpeg.FfmpegCommand;
 
 export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceUdp, includeAudio = true) {
     return new Promise<string>((resolve, reject) => {
-        const videoStream: VideoStream = new VideoStream( voiceUdp);
+        const videoStream: VideoStream = new VideoStream( voiceUdp, streamOpts.fps);
         
-        const ivfStream = new IvfTransformer();
+        let videoOutput: Transform;
 
-        // get header frame time
-        ivfStream.on("header", (header) => {
-            videoStream.setSleepTime(getFrameDelayInMilliseconds(header));
-        });
-        
-        videoStream.on("finish", () => {
-            resolve("finished video");
-        });
+        if(streamOpts.video_codec === 'H264') {
+            videoOutput = new H264NalSplitter();
+        } else {
+            videoOutput = new IvfTransformer();
+        }
 
         const headers: map = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.3",
@@ -53,16 +51,27 @@ export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceU
                 command = undefined;
                 reject('cannot play video ' + err.message)
             })
-            .on('stderr', console.error)
-            .output(StreamOutput(ivfStream).url, { end: false })
-            .noAudio()
-            .size(`${streamOpts.width}x${streamOpts.height}`)
-            .fpsOutput(streamOpts.fps)
-            .videoBitrate(`${streamOpts.bitrateKbps}k`)
-            .format('ivf')
-            .outputOption('-deadline', 'realtime');
+            .on('stderr', console.error);
 
-            ivfStream.pipe(videoStream, { end: false});
+            if(streamOpts.video_codec === 'VP8') {
+                command.output(StreamOutput(videoOutput).url, { end: false })
+                .noAudio()
+                .size(`${streamOpts.width}x${streamOpts.height}`)
+                .fpsOutput(streamOpts.fps)
+                .videoBitrate(`${streamOpts.bitrateKbps}k`)
+                .format('ivf')
+                .outputOption('-deadline', 'realtime');
+            } else {
+                command.output(StreamOutput(videoOutput).url, { end: false })
+                .noAudio()
+                .size(`${streamOpts.width}x${streamOpts.height}`)
+                .fpsOutput(streamOpts.fps)
+                .videoBitrate(`${streamOpts.bitrateKbps}k`)
+                .format('h264')
+                .outputOptions(`-tune zerolatency -pix_fmt yuv420p -preset ultrafast -profile:v baseline -g ${streamOpts.fps} -x264-params keyint=${streamOpts.fps}:min-keyint=${streamOpts.fps} -bsf:v h264_metadata=aud=insert`.split(' '));
+            }
+
+            videoOutput.pipe(videoStream, { end: false});
             
             if(includeAudio) {
                 const audioStream: AudioStream = new AudioStream( voiceUdp );

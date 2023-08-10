@@ -8,7 +8,13 @@ export class AudioPacketizer extends BaseMediaPacketizer {
         super(connection, 0x78);
     }
 
-    public override createPacket(chunk: any): Buffer {
+    public override sendFrame(frame:any): void {
+       const packet = this.createPacket(frame);
+       this.connection.sendPacket(packet);
+       this.onFrameSent();
+    }
+
+    public createPacket(chunk: any): Buffer {
         const header = this.makeRtpHeader(this.connection.voiceConnection.ssrc);
 
         const nonceBuffer = this.connection.getNewNonceBuffer();

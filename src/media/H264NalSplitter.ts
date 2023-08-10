@@ -97,10 +97,10 @@ export class H264NalSplitter extends Transform {
      * Returns true if nal magic string with specified length was found.
      * Nal magic string is either 001 or 0001 depending on length
      * @param buf 
-     * @param magicLength 
-     * @returns 
+     * @param magicLength either 3 or 4
+     * @returns true if nalu magic string was found
      */
-    findNalByMagicString(buf: Buffer, magicLength: number) {
+    findNalByMagicString(buf: Buffer, magicLength: 3 | 4) {
         let found = false;
 
         if(magicLength === 3) {

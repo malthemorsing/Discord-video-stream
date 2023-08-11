@@ -4,11 +4,11 @@ import { VoiceUdp } from "./voice/VoiceUdp";
 import { StreamConnection } from "./stream/StreamConnection";
 import { GatewayOpCodes } from "./GatewayOpCodes";
 
-export class Streamer<T extends Client> {
+export class Streamer {
     private _voiceConnection?: VoiceConnection;
     private _client: Client;
 
-    constructor(client: T) {
+    constructor(client: Client) {
         this._client = client;
 
         //listen for messages

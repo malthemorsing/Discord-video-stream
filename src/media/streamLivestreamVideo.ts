@@ -1,5 +1,5 @@
 import ffmpeg from 'fluent-ffmpeg';
-import { getFrameDelayInMilliseconds, IvfTransformer }from "./ivfreader";
+import { IvfTransformer }from "./ivfreader";
 import prism from "prism-media";
 import { VideoStream } from "./videoStream";
 import { AudioStream } from "./audioStream";

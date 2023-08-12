@@ -1,4 +1,4 @@
-import { Transform } from "stream";
+import { Transform, TransformCallback } from "stream";
 
 type NalInfo = {
     startCodeLength: number;
@@ -116,7 +116,7 @@ export class H264NalSplitter extends Transform {
         return found;
     }
 
-    _transform(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
+    _transform(chunk: any, encoding: BufferEncoding, callback: TransformCallback): void {
         this._appendChunkToBuf(chunk);
 
         // start chunking

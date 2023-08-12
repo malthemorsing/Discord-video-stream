@@ -83,8 +83,6 @@ export class Streamer {
     public leaveVoice(): void {
         this.voiceConnection?.stop();
     
-        this.voiceConnection?.streamConnection?.stop();
-    
         this.signalLeaveVoice();
     
         this._voiceConnection = undefined;

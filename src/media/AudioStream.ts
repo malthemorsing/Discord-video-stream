@@ -5,7 +5,7 @@ class AudioStream extends Writable {
     public udp: MediaUdp;
     public count: number;
     public sleepTime: number;
-    public startTime: number;
+    public startTime?: number;
     
     constructor(udp: MediaUdp) {
         super();

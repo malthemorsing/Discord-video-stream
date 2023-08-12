@@ -5,7 +5,7 @@ export class VideoStream extends Writable {
     public udp: MediaUdp;
     public count: number;
     public sleepTime: number;
-    public startTime: number = -1;
+    public startTime?: number;
     
     constructor(udp: MediaUdp, fps: number = 30) {
         super();
@@ -20,7 +20,7 @@ export class VideoStream extends Writable {
 
     _write(frame: any, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
         this.count++;
-        if (this.startTime === -1)
+        if (!this.startTime)
             this.startTime = Date.now();
 
         this.udp.sendVideoFrame(frame);

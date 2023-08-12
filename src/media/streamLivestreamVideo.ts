@@ -3,7 +3,7 @@ import { IvfTransformer }from "./ivfreader";
 import prism from "prism-media";
 import { VideoStream } from "./videoStream";
 import { AudioStream } from "./audioStream";
-import { VoiceUdp } from '../client/voice/VoiceUdp';
+import { MediaUdp } from '../client/voice/MediaUdp';
 import { StreamOutput } from '@dank074/fluent-ffmpeg-multistream-ts';
 import { streamOpts } from '../client/StreamOpts';
 import { Readable, Transform } from 'stream';
@@ -11,9 +11,9 @@ import { H264NalSplitter } from './H264NalSplitter';
 
 export let command: ffmpeg.FfmpegCommand;
 
-export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceUdp, includeAudio = true) {
+export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaUdp, includeAudio = true) {
     return new Promise<string>((resolve, reject) => {
-        const videoStream: VideoStream = new VideoStream( voiceUdp, streamOpts.fps);
+        const videoStream: VideoStream = new VideoStream(mediaUdp, streamOpts.fps);
         
         let videoOutput: Transform;
 
@@ -74,7 +74,7 @@ export function streamLivestreamVideo(input: string | Readable, voiceUdp: VoiceU
             videoOutput.pipe(videoStream, { end: false});
             
             if(includeAudio) {
-                const audioStream: AudioStream = new AudioStream( voiceUdp );
+                const audioStream: AudioStream = new AudioStream(mediaUdp);
         
                 // make opus stream
                 const opus = new prism.opus.Encoder({ channels: 2, rate: 48000, frameSize: 960 });

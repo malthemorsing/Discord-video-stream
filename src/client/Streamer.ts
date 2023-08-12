@@ -1,7 +1,7 @@
 import { VoiceConnection } from "./voice/VoiceConnection";
 import { Client } from 'discord.js-selfbot-v13';
-import { VoiceUdp } from "./voice/VoiceUdp";
-import { StreamConnection } from "./stream/StreamConnection";
+import { MediaUdp } from "./voice/MediaUdp";
+import { StreamConnection } from "./voice/StreamConnection";
 import { GatewayOpCodes } from "./GatewayOpCodes";
 
 export class Streamer {
@@ -33,8 +33,8 @@ export class Streamer {
         });
     }
 
-    public joinVoice(guild_id: string, channel_id: string): Promise<VoiceUdp> {
-        return new Promise<VoiceUdp>((resolve, reject) => {
+    public joinVoice(guild_id: string, channel_id: string): Promise<MediaUdp> {
+        return new Promise<MediaUdp>((resolve, reject) => {
             this._voiceConnection = new VoiceConnection(
                 guild_id,
                 this.client.user.id,
@@ -47,8 +47,8 @@ export class Streamer {
         });
     }
 
-    public createStream(): Promise<VoiceUdp> {
-        return new Promise<VoiceUdp>((resolve, reject) => {
+    public createStream(): Promise<MediaUdp> {
+        return new Promise<MediaUdp>((resolve, reject) => {
             if (!this.voiceConnection)
                 reject("cannot start stream without first joining voice channel");
     
@@ -57,7 +57,7 @@ export class Streamer {
                 this.voiceConnection.channelId
             );
     
-            this.voiceConnection.screenShareConn = new StreamConnection(
+            this.voiceConnection.streamConnection = new StreamConnection(
                 this.voiceConnection.guildId,
                 this.client.user.id,
                 this.voiceConnection.channelId,
@@ -69,7 +69,7 @@ export class Streamer {
     }
 
     public stopStream(): void {
-        const stream = this.voiceConnection?.screenShareConn;
+        const stream = this.voiceConnection?.streamConnection;
     
         if(!stream) return;
     
@@ -77,13 +77,13 @@ export class Streamer {
     
         this.signalStopStream(stream.guildId, stream.channelId);
     
-        this.voiceConnection.screenShareConn = undefined;
+        this.voiceConnection.streamConnection = undefined;
     }
 
     public leaveVoice(): void {
         this.voiceConnection?.stop();
     
-        this.voiceConnection?.screenShareConn?.stop();
+        this.voiceConnection?.streamConnection?.stop();
     
         this.signalLeaveVoice();
     
@@ -152,10 +152,10 @@ export class Streamer {
                 if (this.voiceConnection?.guildId != guildId) return;
         
                 if (userId === this.client.user.id) {
-                    this.voiceConnection.screenShareConn.serverId = data.rtc_server_id;
+                    this.voiceConnection.streamConnection.serverId = data.rtc_server_id;
         
-                    this.voiceConnection.screenShareConn.streamKey = data.stream_key;
-                    this.voiceConnection.screenShareConn.setSession(
+                    this.voiceConnection.streamConnection.streamKey = data.stream_key;
+                    this.voiceConnection.streamConnection.setSession(
                         this.voiceConnection.session_id
                     );
                 }
@@ -167,7 +167,7 @@ export class Streamer {
                 if (this.voiceConnection?.guildId != guildId) return;
         
                 if (userId === this.client.user.id) {
-                    this.voiceConnection.screenShareConn.setTokens(
+                    this.voiceConnection.streamConnection.setTokens(
                         data.endpoint,
                         data.token
                     );

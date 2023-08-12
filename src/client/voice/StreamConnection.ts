@@ -1,7 +1,7 @@
-import { VoiceConnection } from "../voice/VoiceConnection";
 import { VoiceOpCodes } from "../voice/VoiceOpCodes";
+import { BaseMediaConnection } from "./BaseMediaConnection";
 
-export class StreamConnection extends VoiceConnection
+export class StreamConnection extends BaseMediaConnection
 {
     private _streamKey: string;
     private _serverId: string;

@@ -1,3 +1,4 @@
 export * from './VoiceConnection';
 export * from './VoiceOpCodes';
-export * from './VoiceUdp';
+export * from './MediaUdp';
+export * from './StreamConnection';

@@ -3,9 +3,9 @@ import { isIPv4 } from 'net';
 import { AudioPacketizer } from '../packet/AudioPacketizer';
 import { BaseMediaPacketizer, max_int32bit } from '../packet/BaseMediaPacketizer';
 import { VideoPacketizerVP8 } from '../packet/VideoPacketizerVP8';
-import { VoiceConnection } from './VoiceConnection';
 import { streamOpts } from '../StreamOpts';
 import { VideoPacketizerH264 } from '../packet/VideoPacketizerH264';
+import { BaseMediaConnection } from './BaseMediaConnection';
 
 // credit to discord.js
 function parseLocalPacket(message: Buffer) {
@@ -23,18 +23,18 @@ function parseLocalPacket(message: Buffer) {
 }
   
 
-export class VoiceUdp {
-    private _voiceConnection: VoiceConnection;
+export class MediaUdp {
+    private _mediaConnection: BaseMediaConnection;
     private _nonce: number;
     private _socket: udpCon.Socket;
     private _ready: boolean;
     private _audioPacketizer: BaseMediaPacketizer;
     private _videoPacketizer: BaseMediaPacketizer;
 
-    constructor(voiceConnection: VoiceConnection) {
+    constructor(voiceConnection: BaseMediaConnection) {
         this._nonce = 0;
 
-        this._voiceConnection = voiceConnection;
+        this._mediaConnection = voiceConnection;
         this._audioPacketizer = new AudioPacketizer(this);
         if(streamOpts.video_codec === 'VP8') this._videoPacketizer = new VideoPacketizerVP8(this);
         else this._videoPacketizer = new VideoPacketizerH264(this);
@@ -57,8 +57,8 @@ export class VoiceUdp {
         return this._videoPacketizer;
     }
 
-    public get voiceConnection(): VoiceConnection {
-        return this._voiceConnection;
+    public get mediaConnection(): BaseMediaConnection {
+        return this._mediaConnection;
     }
 
     public sendAudioFrame(frame: any): void{
@@ -75,7 +75,7 @@ export class VoiceUdp {
     public sendPacket(packet: any): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             try {
-            this._socket.send(packet, 0, packet.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {
+            this._socket.send(packet, 0, packet.length, this._mediaConnection.port, this._mediaConnection.address, (error, bytes) => {
                 if (error) {
                     console.log("ERROR", error);
                     reject(error);
@@ -121,9 +121,9 @@ export class VoiceUdp {
                 try {
                     const packet = parseLocalPacket(message);
 
-                    this._voiceConnection.self_ip = packet.ip;
-                    this._voiceConnection.self_port = packet.port;
-                    this._voiceConnection.setProtocols();
+                    this._mediaConnection.self_ip = packet.ip;
+                    this._mediaConnection.self_port = packet.port;
+                    this._mediaConnection.setProtocols();
                 } catch(e) { reject(e) }
                 
                 resolve();
@@ -134,9 +134,9 @@ export class VoiceUdp {
             
             blank.writeUInt16BE(1, 0);
 			blank.writeUInt16BE(70, 2);
-            blank.writeUInt32BE(this._voiceConnection.ssrc, 4);
+            blank.writeUInt32BE(this._mediaConnection.ssrc, 4);
 
-            this._socket.send(blank, 0, blank.length, this._voiceConnection.port, this._voiceConnection.address, (error, bytes) => {
+            this._socket.send(blank, 0, blank.length, this._mediaConnection.port, this._mediaConnection.address, (error, bytes) => {
                 if (error) {
                     reject(error)
                 }

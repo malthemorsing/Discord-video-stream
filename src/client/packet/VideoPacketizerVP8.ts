@@ -1,5 +1,5 @@
 import { streamOpts } from "../StreamOpts";
-import { VoiceUdp } from "../voice/VoiceUdp";
+import { MediaUdp } from "../voice/MediaUdp";
 import { BaseMediaPacketizer, max_int16bit } from "./BaseMediaPacketizer";
 
 /**
@@ -9,7 +9,7 @@ import { BaseMediaPacketizer, max_int16bit } from "./BaseMediaPacketizer";
 export class VideoPacketizerVP8 extends BaseMediaPacketizer {
     private _pictureId: number;
 
-    constructor(connection: VoiceUdp) {
+    constructor(connection: MediaUdp) {
         super(connection, 0x65, true);
         this._pictureId = 0;
     }
@@ -25,7 +25,7 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
         for (let i = 0; i < data.length; i++) {
             const packet = this.createPacket(data[i], i === (data.length - 1), i === 0);
 
-            this.connection.sendPacket(packet);
+            this.mediaUdp.sendPacket(packet);
         }
 
         this.onFrameSent();
@@ -34,12 +34,12 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
     public createPacket(chunk: any, isLastPacket = true, isFirstPacket = true): Buffer {
         if(chunk.length > this.mtu) throw Error('error packetizing video frame: frame is larger than mtu');
 
-        const packetHeader = this.makeRtpHeader(this.connection.voiceConnection.videoSsrc, isLastPacket);
+        const packetHeader = this.makeRtpHeader(this.mediaUdp.mediaConnection.videoSsrc, isLastPacket);
 
         const packetData = this.makeChunk(chunk, isFirstPacket);
     
         // nonce buffer used for encryption. 4 bytes are appended to end of packet
-        const nonceBuffer = this.connection.getNewNonceBuffer();
+        const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
         return Buffer.concat([packetHeader, this.encryptData(packetData, nonceBuffer), nonceBuffer.subarray(0, 4)]);
     }
 

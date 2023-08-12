@@ -1,13 +1,13 @@
 import { Writable } from "stream";
-import { VoiceUdp } from "../client/voice/VoiceUdp";
+import { MediaUdp } from "../client/voice/MediaUdp";
 
 export class VideoStream extends Writable {
-    public udp: VoiceUdp;
+    public udp: MediaUdp;
     public count: number;
     public sleepTime: number;
     public startTime: number = -1;
     
-    constructor(udp: VoiceUdp, fps: number = 30) {
+    constructor(udp: MediaUdp, fps: number = 30) {
         super();
         this.udp = udp;
         this.count = 0;

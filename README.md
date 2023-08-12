@@ -1,10 +1,13 @@
-## Discord bot video
+# Discord bot video
 Fork: [Discord-video-experiment](https://github.com/mrjvs/Discord-video-experiment)
+
+This project implements the custom Discord UDP protocol for sending media. Since Discord is likely change their custom protocol, this library is subject to break at any point. An effort will be made to keep this library up to date with the latest Discord protocol, but it is not guranteed.
+
+For better stability it is recommended to use WebRTC protocol instead since Discord is forced to adhere to spec, which means that the non-signaling code is guaranteed to work.
 
 ## Features
  - Playing vp8 or h264 video in a voice channel (`go live`, or webcam video)
- - Transcoding video to vp8 and audio to opus (using ffmpeg)
- - Screensharing using Puppeteer
+ - Playing opus audio in a voice channel
 
 ## Implementation
 What I implemented and what I did not.
@@ -55,34 +58,33 @@ npm install discord.js-selfbot-v13@latest
 Create a new client, and patch its events to listen for voice gateway events:
 ```typescript
 import { Client } from "discord.js-selfbot-v13";
-import "@dank074/discord-video-stream";
+import { Streamer } from '@dank074/discord-video-stream';
 
-const client = new Client();
-client.login('TOKEN HERE');
+const streamer = new Streamer(new Client());
+await streamer.client.login('TOKEN HERE');
 
-client.patchVoiceEvents();
 ```
 
 Make client join a voice channel and create a stream:
 ```typescript
-await client.joinVoice("GUILD ID HERE", "CHANNEL ID HERE");
+await streamer.joinVoice("GUILD ID HERE", "CHANNEL ID HERE");
 
-const streamUdpConn = await client.createStream();
+const udp = await streamer.createStream();
 ```
 
 Start sending media over the udp connection:
 ```typescript
-streamUdpConn.voiceConnection.setSpeaking(true);
-streamUdpConn.voiceConnection.setVideoStatus(true);
+udp.mediaConnection.setSpeaking(true);
+udp.mediaConnection.setVideoStatus(true);
 try {
-    const res = await streamLivestreamVideo("DIRECT VIDEO URL OR READABLE STREAM HERE", streamUdpConn);
+    const res = await streamLivestreamVideo("DIRECT VIDEO URL OR READABLE STREAM HERE", udp);
 
     console.log("Finished playing video " + res);
 } catch (e) {
     console.log(e);
 } finally {
-    streamUdpConn.voiceConnection.setSpeaking(false);
-    streamUdpConn.voiceConnection.setVideoStatus(false);
+    udp.mediaConnection.setSpeaking(false);
+    udp.mediaConnection.setVideoStatus(false);
 }
 ```
 ## Running example

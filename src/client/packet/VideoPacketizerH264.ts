@@ -1,5 +1,5 @@
 import { streamOpts } from "../StreamOpts";
-import { VoiceUdp } from "../voice/VoiceUdp";
+import { MediaUdp } from "../voice/MediaUdp";
 import { BaseMediaPacketizer } from "./BaseMediaPacketizer";
 
 /**
@@ -49,7 +49,7 @@ import { BaseMediaPacketizer } from "./BaseMediaPacketizer";
          ...
  */
 export class VideoPacketizerH264 extends BaseMediaPacketizer {
-    constructor(connection: VoiceUdp) {
+    constructor(connection: MediaUdp) {
         super(connection, 0x65, true);
     }
 
@@ -79,7 +79,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
             if (nalu.length <= this.mtu) {
                 // Send as Single-Time Aggregation Packet (STAP-A).
                 const packetHeader = this.makeRtpHeader(
-                    this.connection.voiceConnection.videoSsrc,
+                    this.mediaUdp.mediaConnection.videoSsrc,
                     isLastNal
                 );
                 const packetData = Buffer.concat([
@@ -87,8 +87,8 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
                     nalu,
                 ]);
 
-                const nonceBuffer = this.connection.getNewNonceBuffer();
-                this.connection.sendPacket(
+                const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
+                this.mediaUdp.sendPacket(
                     Buffer.concat([
                         packetHeader,
                         this.encryptData(packetData, nonceBuffer),
@@ -106,7 +106,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
                     const markerBit = isLastNal && isFinalPacket;
 
                     const packetHeader = this.makeRtpHeader(
-                        this.connection.voiceConnection.videoSsrc,
+                        this.mediaUdp.mediaConnection.videoSsrc,
                         markerBit
                     );
 
@@ -118,8 +118,8 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
                     );
 
                     // nonce buffer used for encryption. 4 bytes are appended to end of packet
-                    const nonceBuffer = this.connection.getNewNonceBuffer();
-                    this.connection.sendPacket(
+                    const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
+                    this.mediaUdp.sendPacket(
                         Buffer.concat([
                             packetHeader,
                             this.encryptData(packetData, nonceBuffer),

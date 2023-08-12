@@ -1,4 +1,4 @@
-import { Transform } from "stream";
+import { Transform, TransformCallback } from "stream";
 
 type NalInfo = {
     startCodeLength: number;
@@ -10,6 +10,8 @@ const epbSuffix = [0x00, 0x01, 0x02, 0x03];
 /**
  * Outputs a buffer containing length-delimited nalu units
  * that belong to the same access unit.
+ * Expects an AnnexB H264 bytestream as input.
+ * 
  * In a h264 stream, 1 frame is equal to 1 access unit, and an access
  * unit is composed of 1 to n Nal units
  */
@@ -114,7 +116,7 @@ export class H264NalSplitter extends Transform {
         return found;
     }
 
-    _transform(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
+    _transform(chunk: any, encoding: BufferEncoding, callback: TransformCallback): void {
         this._appendChunkToBuf(chunk);
 
         // start chunking

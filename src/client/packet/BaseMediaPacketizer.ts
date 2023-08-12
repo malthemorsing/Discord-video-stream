@@ -1,5 +1,5 @@
 import { crypto_secretbox_easy } from "libsodium-wrappers";
-import { VoiceUdp } from "../voice/VoiceUdp";
+import { MediaUdp } from "../voice/MediaUdp";
 
 export const max_int16bit = (2 ** 16) - 1;
 export const max_int32bit = (2 ** 32) - 1;
@@ -9,11 +9,11 @@ export class BaseMediaPacketizer {
     private _mtu: number;
     private _sequence: number;
     private _timestamp: number;
-    private _connection: VoiceUdp;
+    private _mediaUdp: MediaUdp;
     private _extensionEnabled: boolean;
 
-    constructor(connection: VoiceUdp, payloadType: number, extensionEnabled = false) {
-        this._connection = connection;
+    constructor(connection: MediaUdp, payloadType: number, extensionEnabled = false) {
+        this._mediaUdp = connection;
         this._payloadType = payloadType;
         this._sequence = 0;
         this._timestamp = 0;
@@ -130,11 +130,11 @@ export class BaseMediaPacketizer {
     // encrypts all data that is not in rtp header.
     // rtp header extensions and payload headers are also encrypted
     public encryptData(message: string | Uint8Array, nonceBuffer: Buffer) : Uint8Array {
-        return crypto_secretbox_easy(message, nonceBuffer, this._connection.voiceConnection.secretkey);
+        return crypto_secretbox_easy(message, nonceBuffer, this._mediaUdp.mediaConnection.secretkey);
     }
 
-    public get connection(): VoiceUdp {
-        return this._connection;
+    public get mediaUdp(): MediaUdp {
+        return this._mediaUdp;
     }
 
     public get mtu(): number {

@@ -121,3 +121,7 @@ $play-live http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigB
 - Can I stream on existing voice connection (CAM) and in a go-live connection simultaneously?
 
 Yes, just send the media packets over both udp connections. The voice gateway expects you to signal when a user turns on their camera, so make sure you signal using `client.signalVideo(guildId, channelId, true)` before you start sending cam media packets.
+
+- Does this library work with bot tokens?
+
+No, Discord blocks video from bots which is why this library uses a selfbot library as peer dependency. You must use a user token

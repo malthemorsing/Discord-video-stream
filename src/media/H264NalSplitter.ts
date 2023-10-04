@@ -34,7 +34,7 @@ export class H264NalSplitter extends Transform {
         let epbs = [];
         
         while (pos < len - 3) {
-            if (data[pos] === 0 && data[pos + 1] === 0 && data[pos + 2] === 0x03 && epbSuffix.some(val => val === data[pos + 3])) {
+            if (data[pos] === 0 && data[pos + 1] === 0 && data[pos + 2] === 0x03 && epbSuffix.includes(data[pos + 3])) {
                 epbs.push(pos + 2);
                 pos += 3;
             } else {

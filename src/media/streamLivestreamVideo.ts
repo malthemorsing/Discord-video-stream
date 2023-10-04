@@ -39,7 +39,6 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
 
         try {
             command = ffmpeg(input)
-            .inputOption('-re')
             .addOption('-loglevel', '0')
             .addOption('-fflags', 'nobuffer')
             .addOption('-analyzeduration', '0')
@@ -68,7 +67,15 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                 .fpsOutput(streamOpts.fps)
                 .videoBitrate(`${streamOpts.bitrateKbps}k`)
                 .format('h264')
-                .outputOptions(`-tune zerolatency -pix_fmt yuv420p -preset ultrafast -profile:v baseline -g ${streamOpts.fps} -x264-params keyint=${streamOpts.fps}:min-keyint=${streamOpts.fps} -bsf:v h264_metadata=aud=insert`.split(' '));
+                .outputOptions([
+                    '-tune zerolatency',
+                    '-pix_fmt yuv420p',
+                    '-preset ultrafast',
+                    '-profile:v baseline',
+                    `-g ${streamOpts.fps}`,
+                    `-x264-params keyint=${streamOpts.fps}:min-keyint=${streamOpts.fps}`,
+                    '-bsf:v h264_metadata=aud=insert'
+                ]);
             }
 
             videoOutput.pipe(videoStream, { end: false});
@@ -96,8 +103,14 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                 command.inputOption('-headers', 
                     Object.keys(headers).map(key => key + ": " + headers[key]).join("\r\n")
                 );
-                if(!isHls)
-                    command.inputOptions('-reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 4294'.split(' '));
+                if(!isHls) {
+                    command.inputOptions([
+                        '-reconnect 1',
+                        '-reconnect_at_eof 1',
+                        '-reconnect_streamed 1',
+                        '-reconnect_delay_max 4294'
+                    ]);
+                }
             }
             
             command.run();

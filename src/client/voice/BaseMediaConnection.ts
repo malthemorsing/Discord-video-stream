@@ -245,7 +245,7 @@ export abstract class BaseMediaConnection {
                     active:true,
                     quality:100,
                     rtx_ssrc:bool ? this.rtxSsrc : 0,
-                    max_bitrate:2500000,
+                    max_bitrate: streamOpts.maxBitrateKbps * 1000,
                     max_framerate: streamOpts.fps,
                     max_resolution: {
                         type:"fixed",

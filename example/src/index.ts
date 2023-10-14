@@ -11,7 +11,8 @@ setStreamOpts({
     width: config.streamOpts.width, 
     height: config.streamOpts.height, 
     fps: config.streamOpts.fps, 
-    bitrateKbps: config.streamOpts.bitrateKbps, 
+    bitrateKbps: config.streamOpts.bitrateKbps,
+    maxBitrateKbps: config.streamOpts.maxBitrateKbps, 
     hardware_acceleration: config.streamOpts.hardware_acceleration,
     video_codec: config.streamOpts.videoCodec === 'H264' ? 'H264' : 'VP8'
 })

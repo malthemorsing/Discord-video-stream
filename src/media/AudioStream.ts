@@ -17,11 +17,11 @@ class AudioStream extends Writable {
     _write(chunk: any, _: BufferEncoding, callback: (error?: Error | null) => void) {
         this.count++;
         if (!this.startTime)
-            this.startTime = Date.now();
+            this.startTime = performance.now();
 
         this.udp.sendAudioFrame(chunk);
         
-        const next = ((this.count + 1) * this.sleepTime) - (Date.now() - this.startTime);
+        const next = ((this.count + 1) * this.sleepTime) - (performance.now() - this.startTime);
         setTimeout(() => {
             callback();
         }, next);

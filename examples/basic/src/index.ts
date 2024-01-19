@@ -1,9 +1,6 @@
 import { Client, StageChannel } from "discord.js-selfbot-v13";
-import { command, streamLivestreamVideo, MediaUdp, setStreamOpts, streamOpts, getInputMetadata, inputHasAudio, Streamer } from "@dank074/discord-video-stream";
-import { launch, getStream } from 'puppeteer-stream';
+import { command, streamLivestreamVideo, MediaUdp, setStreamOpts, getInputMetadata, inputHasAudio, Streamer } from "@dank074/discord-video-stream";
 import config from "./config.json";
-import { Readable } from "stream";
-import { executablePath } from 'puppeteer';
 
 const streamer = new Streamer(new Client());
 
@@ -73,29 +70,6 @@ streamer.client.on("messageCreate", async (msg) => {
         playVideo(args.url, vc);
 
         return;
-    } else if(msg.content.startsWith("$play-screen")) {
-        const args = parseArgs(msg.content)
-        if (!args) return;
-
-        const channel = msg.author.voice.channel;
-
-        if(!channel) return;
-
-        console.log(`Attempting to join voice channel ${msg.guildId}/${channel.id}`);
-        await streamer.joinVoice(msg.guildId, channel.id);
-
-        if(channel instanceof StageChannel)
-        {
-            await streamer.client.user.voice.setSuppressed(false);
-        }
-        
-        const streamUdpConn = await streamer.createStream();
-
-        await streamPuppeteer(args.url, streamUdpConn);
-
-        streamer.stopStream();
-
-        return;
     } else if (msg.content.startsWith("$disconnect")) {
         command?.kill("SIGINT");
 
@@ -132,37 +106,6 @@ async function playVideo(video: string, udpConn: MediaUdp) {
     udpConn.mediaConnection.setVideoStatus(true);
     try {
         const res = await streamLivestreamVideo(video, udpConn, includeAudio);
-
-        console.log("Finished playing video " + res);
-    } catch (e) {
-        console.log(e);
-    } finally {
-        udpConn.mediaConnection.setSpeaking(false);
-        udpConn.mediaConnection.setVideoStatus(false);
-    }
-    command?.kill("SIGINT");
-}
-
-async function streamPuppeteer(url: string, udpConn: MediaUdp) {
-    const browser = await launch({
-        defaultViewport: {
-            width: streamOpts.width,
-            height: streamOpts.height,
-        },
-        executablePath: executablePath()
-    });
-
-    const page = await browser.newPage();
-    await page.goto(url);
-
-    // node typings are fucked, not sure why
-    const stream: any = await getStream(page, { audio: true, video: true, mimeType: "video/webm;codecs=vp8,opus" }); 
-
-    udpConn.mediaConnection.setSpeaking(true);
-    udpConn.mediaConnection.setVideoStatus(true);
-    try {
-        // is there a way to distinguish audio from video chunks so we dont have to use ffmpeg ???
-        const res = await streamLivestreamVideo((stream as Readable), udpConn);
 
         console.log("Finished playing video " + res);
     } catch (e) {

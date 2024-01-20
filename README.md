@@ -88,7 +88,7 @@ try {
 }
 ```
 ## Running example
-`example/src/config.json`:
+`examples/basic/src/config.json`:
 ```json
 "token": "SELF TOKEN HERE",
 "acceptedAuthors": ["USER_ID_HERE"],
@@ -108,10 +108,7 @@ or for cam
 ```
 $play-cam <Direct video link>
 ```
-or for screensharing using puppeteer
-```
-$play-screen <website url>
-```
+
 for example:
 ```
 $play-live http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4

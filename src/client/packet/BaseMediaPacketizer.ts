@@ -1,8 +1,8 @@
 import { crypto_secretbox_easy } from "libsodium-wrappers";
 import { MediaUdp } from "../voice/MediaUdp";
 
-export const max_int16bit = (2 ** 16) - 1;
-export const max_int32bit = (2 ** 32) - 1;
+export const max_int16bit = 2 ** 16;
+export const max_int32bit = 2 ** 32;
 
 export class BaseMediaPacketizer {
     private _payloadType: number;
@@ -18,7 +18,7 @@ export class BaseMediaPacketizer {
         this._sequence = 0;
         this._timestamp = 0;
         this._mtu = 1200;
-        this._extensionEnabled = extensionEnabled;;
+        this._extensionEnabled = extensionEnabled;
     }
 
     public sendFrame(frame:any): void {
@@ -51,14 +51,12 @@ export class BaseMediaPacketizer {
     }
 
     public getNewSequence(): number {
-        this._sequence++;
-        if (this._sequence > max_int16bit) this._sequence = 0;
+        this._sequence = (this._sequence + 1) % max_int16bit;
         return this._sequence;
     }
 
     public incrementTimestamp(incrementBy: number): void {
-       this._timestamp += incrementBy;
-        if (this._timestamp > max_int32bit) this._timestamp = 0;
+        this._timestamp = (this._timestamp + incrementBy) % max_int32bit;
     }
 
     public makeRtpHeader(ssrc: number, isLastPacket: boolean = true): Buffer {

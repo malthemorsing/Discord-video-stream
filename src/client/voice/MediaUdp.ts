@@ -42,8 +42,7 @@ export class MediaUdp {
 
     public getNewNonceBuffer(): Buffer {
         const nonceBuffer = Buffer.alloc(24)
-        this._nonce++;
-        if (this._nonce > max_int32bit) this._nonce = 0;
+        this._nonce = (this._nonce + 1) % max_int32bit;
         
         nonceBuffer.writeUInt32BE(this._nonce, 0);
         return nonceBuffer;

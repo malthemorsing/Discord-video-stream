@@ -15,8 +15,7 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
     }
 
     private incrementPictureId(): void {
-        this._pictureId++;
-        if(this._pictureId > max_int16bit) this._pictureId = 0;
+        this._pictureId = (this._pictureId + 1) % max_int16bit;
     }
 
     public override sendFrame(frame: any): void {

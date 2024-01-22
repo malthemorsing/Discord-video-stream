@@ -51,8 +51,8 @@ export class BaseMediaPacketizer {
     }
 
     public getNewSequence(): number {
-        this._sequence = (this._sequence + 1) % max_int16bit;
-        return this._sequence;
+        this._sequence = (this._sequence + 1) % max_int32bit;
+        return this._sequence % max_int16bit;
     }
 
     public incrementTimestamp(incrementBy: number): void {

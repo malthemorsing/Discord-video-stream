@@ -6,6 +6,8 @@ type NalInfo = {
 }
 
 const epbSuffix = [0x00, 0x01, 0x02, 0x03];
+const nal3 = Buffer.from([0x00, 0x00, 0x01]);
+const nal4 = Buffer.from([0x00, 0x00, 0x00, 0x01]);
 
 /**
  * Outputs a buffer containing length-delimited nalu units
@@ -72,45 +74,39 @@ export class H264NalSplitter extends Transform {
             nalLength: 0
         }
 
-        if (this.findNalByMagicString(buf, 3)) {
+        if (buf.subarray(0, 3).equals(nal3)) {
             nalInfo.startCodeLength = 3;
         }
-        else if (this.findNalByMagicString(buf, 4)) {
+        else if (buf.subarray(0, 4).equals(nal4)) {
             nalInfo.startCodeLength = 4;
         }
 
         // If we find the next start code, then we are done
-        const remainingLen = buf.length - nalInfo.startCodeLength;
+        const remaining = buf.subarray(nalInfo.startCodeLength);
+        const nal3Pos = remaining.indexOf(nal3);
+        const nal4Pos = remaining.indexOf(nal4);
 
-        for (let i = 0; i < remainingLen; i++) {
-            if (this.findNalByMagicString(buf.subarray(nalInfo.startCodeLength + i), 3) || this.findNalByMagicString(buf.subarray(nalInfo.startCodeLength + i), 4)) {
-                nalInfo.nalLength = i + nalInfo.startCodeLength;
-                break;
+        if (nal3Pos != -1)
+        {
+            // We found nal3
+            if (nal4Pos != -1)
+            {
+                // We also found nal4, take the minimum of the 2 indices
+                nalInfo.nalLength = nalInfo.startCodeLength + Math.min(nal3Pos, nal4Pos);
             }
+            else
+            {
+                // We only found nal3
+                nalInfo.nalLength = nalInfo.startCodeLength + nal3Pos;
+            }
+        }
+        else if (nal4Pos != -1)
+        {
+            // We only found nal4
+            nalInfo.nalLength = nalInfo.startCodeLength + nal4Pos;
         }
 
         return nalInfo;
-    }
-
-    /**
-     * Returns true if nal magic string with specified length was found.
-     * Nal magic string is either 001 or 0001 depending on length
-     * @param buf 
-     * @param magicLength either 3 or 4
-     * @returns true if nalu magic string was found
-     */
-    findNalByMagicString(buf: Buffer, magicLength: 3 | 4) {
-        let found = false;
-
-        if(magicLength === 3) {
-            if(buf[0] === 0 && buf[1] === 0 && buf[2] === 1) found = true;
-        }
-        else if(magicLength === 4){
-            if(buf[0] === 0 && buf[1] === 0 && buf[2] === 0 && buf[3] === 1) found = true; 
-        }
-        else { throw Error("invalid magic length for h264 nal unit") }
-
-        return found;
     }
 
     _transform(chunk: any, encoding: BufferEncoding, callback: TransformCallback): void {

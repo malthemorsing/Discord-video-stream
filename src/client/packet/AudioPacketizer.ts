@@ -8,10 +8,10 @@ export class AudioPacketizer extends BaseMediaPacketizer {
         super(connection, 0x78);
     }
 
-    public override sendFrame(frame:any): void {
+    public override async sendFrame(frame:any): Promise<void> {
        const packet = this.createPacket(frame);
        this.mediaUdp.sendPacket(packet);
-       this.onFrameSent();
+       this.onFrameSent(packet.length);
     }
 
     public createPacket(chunk: any): Buffer {
@@ -21,7 +21,8 @@ export class AudioPacketizer extends BaseMediaPacketizer {
         return Buffer.concat([header, this.encryptData(chunk, nonceBuffer), nonceBuffer.subarray(0, 4)]);
     }
 
-    public override onFrameSent(): void {
+    public override onFrameSent(bytesSent: number): void {
+        super.onFrameSent(bytesSent, this.mediaUdp.mediaConnection.ssrc);
         this.incrementTimestamp(time_inc);
     }
 }

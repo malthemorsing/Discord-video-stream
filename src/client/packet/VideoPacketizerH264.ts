@@ -72,6 +72,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
             offset += nalu.length;
         }
 
+        let bytesSent = 0;
         let index = 0;
         for (const nalu of nalus) {
             const nal0 = nalu[0];
@@ -88,13 +89,13 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
                 ]);
 
                 const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
-                this.mediaUdp.sendPacket(
-                    Buffer.concat([
-                        packetHeader,
-                        this.encryptData(packetData, nonceBuffer),
-                        nonceBuffer.subarray(0, 4),
-                    ])
-                );
+                const packet = Buffer.concat([
+                    packetHeader,
+                    this.encryptData(packetData, nonceBuffer),
+                    nonceBuffer.subarray(0, 4),
+                ]);
+                this.mediaUdp.sendPacket(packet);
+                bytesSent += packet.length;
             } else {
                 const data = this.partitionDataMTUSizedChunks(nalu.subarray(1));
 
@@ -119,19 +120,19 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
 
                     // nonce buffer used for encryption. 4 bytes are appended to end of packet
                     const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
-                    this.mediaUdp.sendPacket(
-                        Buffer.concat([
-                            packetHeader,
-                            this.encryptData(packetData, nonceBuffer),
-                            nonceBuffer.subarray(0, 4),
-                        ])
-                    );
+                    const packet = Buffer.concat([
+                        packetHeader,
+                        this.encryptData(packetData, nonceBuffer),
+                        nonceBuffer.subarray(0, 4),
+                    ]);
+                    this.mediaUdp.sendPacket(packet);
+                    bytesSent += packet.length;
                 }
             }
             index++;
         }
 
-        this.onFrameSent();
+        this.onFrameSent(bytesSent);
     }
          
     /**
@@ -186,7 +187,8 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
         return Buffer.concat([headerExtensionBuf, fuPayloadHeader, frameData]);
     }
 
-    public override onFrameSent(): void {
+    public override onFrameSent(bytesSent: number): void {
+        super.onFrameSent(bytesSent, this.mediaUdp.mediaConnection.videoSsrc);
         // video RTP packet timestamp incremental value = 90,000Hz / fps
         this.incrementTimestamp(90000 / streamOpts.fps);
     }

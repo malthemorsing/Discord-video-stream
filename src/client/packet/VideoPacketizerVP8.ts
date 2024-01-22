@@ -21,13 +21,15 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
     public override sendFrame(frame: any): void {
         const data = this.partitionDataMTUSizedChunks(frame);
 
+        let bytesSent = 0;
         for (let i = 0; i < data.length; i++) {
             const packet = this.createPacket(data[i], i === (data.length - 1), i === 0);
 
             this.mediaUdp.sendPacket(packet);
+            bytesSent += packet.length;
         }
 
-        this.onFrameSent();
+        this.onFrameSent(bytesSent);
     }
 
     public createPacket(chunk: any, isLastPacket = true, isFirstPacket = true): Buffer {
@@ -42,7 +44,8 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
         return Buffer.concat([packetHeader, this.encryptData(packetData, nonceBuffer), nonceBuffer.subarray(0, 4)]);
     }
 
-    public override onFrameSent(): void {
+    public override onFrameSent(bytesSent: number): void {
+        super.onFrameSent(bytesSent, this.mediaUdp.mediaConnection.videoSsrc);
         // video RTP packet timestamp incremental value = 90,000Hz / fps
         this.incrementTimestamp(90000 / streamOpts.fps);
         this.incrementPictureId();

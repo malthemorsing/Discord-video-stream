@@ -4,11 +4,15 @@ import { MediaUdp } from "../voice/MediaUdp";
 export const max_int16bit = 2 ** 16;
 export const max_int32bit = 2 ** 32;
 
+const ntpEpoch = new Date("Jan 01 1900 GMT").getTime();
+
 export class BaseMediaPacketizer {
     private _payloadType: number;
     private _mtu: number;
     private _sequence: number;
     private _timestamp: number;
+    private _totalBytes: number;
+    private _prevTotalPackets: number;
     private _mediaUdp: MediaUdp;
     private _extensionEnabled: boolean;
 
@@ -17,6 +21,8 @@ export class BaseMediaPacketizer {
         this._payloadType = payloadType;
         this._sequence = 0;
         this._timestamp = 0;
+        this._totalBytes = 0;
+        this._prevTotalPackets = 0;
         this._mtu = 1200;
         this._extensionEnabled = extensionEnabled;
     }
@@ -25,8 +31,26 @@ export class BaseMediaPacketizer {
         // override this
     }
 
-    public onFrameSent(): void {
-        // override this
+    public onFrameSent(bytesSent: number, ssrc: number): void {
+        this._totalBytes = (this._totalBytes + bytesSent) % max_int32bit;
+
+        let packetCount = this._sequence;
+        if (this._prevTotalPackets > packetCount)
+            // We have rolled over, add 2^32 to the packet count
+            packetCount += max_int32bit;
+        
+        // Send a RTCP Sender Report every 2^7 packets
+        // Number chosen is completely arbitrary, but it's close to the interval Discord uses
+        const interval = 2 ** 7;
+
+        // Not using modulo here, since the number of packet sent might not be
+        // exactly a multiple of 2^7
+        if (Math.floor(packetCount / interval) - Math.floor(this._prevTotalPackets / interval) > 0)
+        {
+            const senderReport = this.makeRtcpSenderReport(ssrc);
+            this._mediaUdp.sendPacket(senderReport);
+            this._prevTotalPackets = this._sequence;
+        }
     }
 
     /**
@@ -71,6 +95,35 @@ export class BaseMediaPacketizer {
         packetHeader.writeUIntBE(this._timestamp, 4, 4);
         packetHeader.writeUIntBE(ssrc, 8, 4);
         return packetHeader;
+    }
+
+    public makeRtcpSenderReport(ssrc: number): Buffer {
+        const packetHeader = Buffer.allocUnsafe(8);
+
+        packetHeader[0] = 0x80; // RFC1889 v2, no padding, no reception report count
+        packetHeader[1] = 0xc8; // Type: Sender Report (200)
+
+        // Packet length (always 0x06 for some reason)
+        packetHeader[2] = 0x00;
+        packetHeader[3] = 0x06;
+        packetHeader.writeUInt32BE(ssrc, 4);
+
+        const senderReport = Buffer.allocUnsafe(20);
+
+        // Convert from floating point to 32.32 fixed point
+        const ntpTimestamp = Math.round((Date.now() - ntpEpoch) / 1000 * 2 ** 32);
+
+        senderReport.writeBigUInt64BE(BigInt(ntpTimestamp));
+        senderReport.writeUInt32BE(this._timestamp, 8);
+        senderReport.writeUInt32BE(this._sequence, 12);
+        senderReport.writeUInt32BE(this._totalBytes, 16);
+
+        const nonceBuffer = this._mediaUdp.getNewNonceBuffer();
+        return Buffer.concat([
+            packetHeader,
+            crypto_secretbox_easy(senderReport, nonceBuffer, this._mediaUdp.mediaConnection.secretkey),
+            nonceBuffer.subarray(0, 4)
+        ]);
     }
 
     /**

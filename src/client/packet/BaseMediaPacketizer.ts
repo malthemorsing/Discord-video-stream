@@ -40,7 +40,7 @@ export class BaseMediaPacketizer {
             packetCount += max_int32bit;
         
         // Send a RTCP Sender Report every 2^7 packets
-        // Number chosen is completely arbitrary, but it's close to the interval Discord uses
+        // Number chosen is completely arbitrary
         const interval = 2 ** 7;
 
         // Not using modulo here, since the number of packet sent might not be

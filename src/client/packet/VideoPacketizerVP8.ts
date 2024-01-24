@@ -19,6 +19,7 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
     }
 
     public override sendFrame(frame: any): void {
+        super.sendFrame(frame);
         const data = this.partitionDataMTUSizedChunks(frame);
 
         let bytesSent = 0;

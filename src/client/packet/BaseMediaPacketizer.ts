@@ -13,6 +13,7 @@ export class BaseMediaPacketizer {
     private _timestamp: number;
     private _totalBytes: number;
     private _prevTotalPackets: number;
+    private _lastPacketTime: number;
     private _mediaUdp: MediaUdp;
     private _extensionEnabled: boolean;
 
@@ -29,6 +30,7 @@ export class BaseMediaPacketizer {
 
     public sendFrame(frame:any): void {
         // override this
+        this._lastPacketTime = Date.now();
     }
 
     public onFrameSent(bytesSent: number, ssrc: number): void {
@@ -111,7 +113,7 @@ export class BaseMediaPacketizer {
         const senderReport = Buffer.allocUnsafe(20);
 
         // Convert from floating point to 32.32 fixed point
-        const ntpTimestamp = Math.round((Date.now() - ntpEpoch) / 1000 * 2 ** 32);
+        const ntpTimestamp = Math.round((this._lastPacketTime - ntpEpoch) / 1000 * 2 ** 32);
 
         senderReport.writeBigUInt64BE(BigInt(ntpTimestamp));
         senderReport.writeUInt32BE(this._timestamp, 8);

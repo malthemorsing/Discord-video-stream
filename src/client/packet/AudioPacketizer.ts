@@ -9,9 +9,10 @@ export class AudioPacketizer extends BaseMediaPacketizer {
     }
 
     public override sendFrame(frame:any): void {
-       const packet = this.createPacket(frame);
-       this.mediaUdp.sendPacket(packet);
-       this.onFrameSent(packet.length);
+        super.sendFrame(frame);
+        const packet = this.createPacket(frame);
+        this.mediaUdp.sendPacket(packet);
+        this.onFrameSent(packet.length);
     }
 
     public createPacket(chunk: any): Buffer {

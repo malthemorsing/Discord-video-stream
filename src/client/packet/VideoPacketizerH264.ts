@@ -59,6 +59,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
      * @param frame h264 video frame
      */
     public override sendFrame(frame: Buffer): void {
+        super.sendFrame(frame);
         let accessUnit = frame;
 
         const nalus: Buffer[] = [];

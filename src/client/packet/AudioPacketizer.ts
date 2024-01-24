@@ -8,7 +8,7 @@ export class AudioPacketizer extends BaseMediaPacketizer {
         super(connection, 0x78);
     }
 
-    public override async sendFrame(frame:any): Promise<void> {
+    public override sendFrame(frame:any): void {
        const packet = this.createPacket(frame);
        this.mediaUdp.sendPacket(packet);
        this.onFrameSent(packet.length);

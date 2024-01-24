@@ -113,9 +113,13 @@ export class BaseMediaPacketizer {
         const senderReport = Buffer.allocUnsafe(20);
 
         // Convert from floating point to 32.32 fixed point
-        const ntpTimestamp = Math.round((this._lastPacketTime - ntpEpoch) / 1000 * 2 ** 32);
+        // Convert each part separately to reduce precision loss
+        const ntpTimestamp = this._lastPacketTime - ntpEpoch;
+        const ntpTimestampMsw = Math.floor(ntpTimestamp);
+        const ntpTimestampLsw = Math.round((ntpTimestamp - ntpTimestampMsw) * max_int32bit);
 
-        senderReport.writeBigUInt64BE(BigInt(ntpTimestamp));
+        senderReport.writeUInt32BE(ntpTimestampMsw, 0);
+        senderReport.writeUInt32BE(ntpTimestampLsw, 4);
         senderReport.writeUInt32BE(this._timestamp, 8);
         senderReport.writeUInt32BE(this._sequence, 12);
         senderReport.writeUInt32BE(this._totalBytes, 16);

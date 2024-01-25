@@ -132,7 +132,7 @@ export class BaseMediaPacketizer {
         senderReport.writeUInt32BE(ntpTimestampMsw, 0);
         senderReport.writeUInt32BE(ntpTimestampLsw, 4);
         senderReport.writeUInt32BE(this._timestamp, 8);
-        senderReport.writeUInt32BE(this._totalPackets, 12);
+        senderReport.writeUInt32BE(this._totalPackets % max_int32bit, 12);
         senderReport.writeUInt32BE(this._totalBytes, 16);
 
         const nonceBuffer = this._mediaUdp.getNewNonceBuffer();

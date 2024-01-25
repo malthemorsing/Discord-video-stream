@@ -16,14 +16,14 @@ export class AudioPacketizer extends BaseMediaPacketizer {
     }
 
     public createPacket(chunk: any): Buffer {
-        const header = this.makeRtpHeader(this.mediaUdp.mediaConnection.ssrc);
+        const header = this.makeRtpHeader();
 
         const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
         return Buffer.concat([header, this.encryptData(chunk, nonceBuffer), nonceBuffer.subarray(0, 4)]);
     }
 
     public override onFrameSent(bytesSent: number): void {
-        super.onFrameSent(bytesSent, this.mediaUdp.mediaConnection.ssrc);
+        super.onFrameSent(bytesSent);
         this.incrementTimestamp(time_inc);
     }
 }

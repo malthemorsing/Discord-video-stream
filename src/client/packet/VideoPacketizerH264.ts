@@ -80,10 +80,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
             const isLastNal = index === nalus.length - 1;
             if (nalu.length <= this.mtu) {
                 // Send as Single-Time Aggregation Packet (STAP-A).
-                const packetHeader = this.makeRtpHeader(
-                    this.mediaUdp.mediaConnection.videoSsrc,
-                    isLastNal
-                );
+                const packetHeader = this.makeRtpHeader(isLastNal);
                 const packetData = Buffer.concat([
                     this.createHeaderExtension(),
                     nalu,
@@ -107,10 +104,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
 
                     const markerBit = isLastNal && isFinalPacket;
 
-                    const packetHeader = this.makeRtpHeader(
-                        this.mediaUdp.mediaConnection.videoSsrc,
-                        markerBit
-                    );
+                    const packetHeader = this.makeRtpHeader(markerBit);
 
                     const packetData = this.makeChunk(
                         data[i],
@@ -189,7 +183,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
     }
 
     public override onFrameSent(bytesSent: number): void {
-        super.onFrameSent(bytesSent, this.mediaUdp.mediaConnection.videoSsrc);
+        super.onFrameSent(bytesSent);
         // video RTP packet timestamp incremental value = 90,000Hz / fps
         this.incrementTimestamp(90000 / streamOpts.fps);
     }

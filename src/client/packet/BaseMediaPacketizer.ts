@@ -7,6 +7,7 @@ export const max_int32bit = 2 ** 32;
 const ntpEpoch = new Date("Jan 01 1900 GMT").getTime();
 
 export class BaseMediaPacketizer {
+    private _ssrc: number = 0;
     private _payloadType: number;
     private _mtu: number;
     private _sequence: number;
@@ -28,12 +29,22 @@ export class BaseMediaPacketizer {
         this._extensionEnabled = extensionEnabled;
     }
 
+    public get ssrc(): number
+    {
+        return this._ssrc;
+    }
+
+    public set ssrc(value: number)
+    {
+        this._ssrc = value;
+    }
+
     public sendFrame(frame:any): void {
         // override this
         this._lastPacketTime = Date.now();
     }
 
-    public onFrameSent(bytesSent: number, ssrc: number): void {
+    public onFrameSent(bytesSent: number): void {
         this._totalBytes = (this._totalBytes + bytesSent) % max_int32bit;
 
         let packetCount = this._sequence;
@@ -49,7 +60,7 @@ export class BaseMediaPacketizer {
         // exactly a multiple of 2^7
         if (Math.floor(packetCount / interval) - Math.floor(this._prevTotalPackets / interval) > 0)
         {
-            const senderReport = this.makeRtcpSenderReport(ssrc);
+            const senderReport = this.makeRtcpSenderReport();
             this._mediaUdp.sendPacket(senderReport);
             this._prevTotalPackets = this._sequence;
         }
@@ -85,7 +96,7 @@ export class BaseMediaPacketizer {
         this._timestamp = (this._timestamp + incrementBy) % max_int32bit;
     }
 
-    public makeRtpHeader(ssrc: number, isLastPacket: boolean = true): Buffer {
+    public makeRtpHeader(isLastPacket: boolean = true): Buffer {
         const packetHeader = Buffer.alloc(12);
     
         packetHeader[0] = 2 << 6 | ((this._extensionEnabled ? 1 : 0) << 4); // set version and flags
@@ -95,11 +106,11 @@ export class BaseMediaPacketizer {
     
         packetHeader.writeUIntBE(this.getNewSequence(), 2, 2);
         packetHeader.writeUIntBE(this._timestamp, 4, 4);
-        packetHeader.writeUIntBE(ssrc, 8, 4);
+        packetHeader.writeUIntBE(this._ssrc, 8, 4);
         return packetHeader;
     }
 
-    public makeRtcpSenderReport(ssrc: number): Buffer {
+    public makeRtcpSenderReport(): Buffer {
         const packetHeader = Buffer.allocUnsafe(8);
 
         packetHeader[0] = 0x80; // RFC1889 v2, no padding, no reception report count
@@ -108,7 +119,7 @@ export class BaseMediaPacketizer {
         // Packet length (always 0x06 for some reason)
         packetHeader[2] = 0x00;
         packetHeader[3] = 0x06;
-        packetHeader.writeUInt32BE(ssrc, 4);
+        packetHeader.writeUInt32BE(this._ssrc, 4);
 
         const senderReport = Buffer.allocUnsafe(20);
 

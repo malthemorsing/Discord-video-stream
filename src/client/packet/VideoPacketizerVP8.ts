@@ -36,7 +36,7 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
     public createPacket(chunk: any, isLastPacket = true, isFirstPacket = true): Buffer {
         if(chunk.length > this.mtu) throw Error('error packetizing video frame: frame is larger than mtu');
 
-        const packetHeader = this.makeRtpHeader(this.mediaUdp.mediaConnection.videoSsrc, isLastPacket);
+        const packetHeader = this.makeRtpHeader(isLastPacket);
 
         const packetData = this.makeChunk(chunk, isFirstPacket);
     
@@ -46,7 +46,7 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
     }
 
     public override onFrameSent(bytesSent: number): void {
-        super.onFrameSent(bytesSent, this.mediaUdp.mediaConnection.videoSsrc);
+        super.onFrameSent(bytesSent);
         // video RTP packet timestamp incremental value = 90,000Hz / fps
         this.incrementTimestamp(90000 / streamOpts.fps);
         this.incrementPictureId();

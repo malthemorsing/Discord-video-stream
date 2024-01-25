@@ -122,6 +122,9 @@ export abstract class BaseMediaConnection {
         this.modes = d.modes;
         this.videoSsrc = this.ssrc + 1; // todo: set it from packet streams object
         this.rtxSsrc = this.ssrc + 2;
+
+        this.udp.audioPacketizer.ssrc = this.ssrc;
+        this.udp.videoPacketizer.ssrc = this.videoSsrc;
     }
 
     handleSession(d: any): void {

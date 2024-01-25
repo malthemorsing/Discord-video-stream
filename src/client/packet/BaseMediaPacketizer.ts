@@ -12,9 +12,12 @@ export class BaseMediaPacketizer {
     private _mtu: number;
     private _sequence: number;
     private _timestamp: number;
+
     private _totalBytes: number;
+    private _totalPackets: number;
     private _prevTotalPackets: number;
     private _lastPacketTime: number;
+
     private _mediaUdp: MediaUdp;
     private _extensionEnabled: boolean;
 
@@ -37,6 +40,7 @@ export class BaseMediaPacketizer {
     public set ssrc(value: number)
     {
         this._ssrc = value;
+        this._totalBytes = this._totalPackets = this._prevTotalPackets = 0;
     }
 
     public sendFrame(frame:any): void {
@@ -45,24 +49,20 @@ export class BaseMediaPacketizer {
     }
 
     public onFrameSent(bytesSent: number): void {
+        this._totalPackets++;
         this._totalBytes = (this._totalBytes + bytesSent) % max_int32bit;
 
-        let packetCount = this._sequence;
-        if (this._prevTotalPackets > packetCount)
-            // We have rolled over, add 2^32 to the packet count
-            packetCount += max_int32bit;
-        
         // Send a RTCP Sender Report every 2^7 packets
         // Number chosen is completely arbitrary
         const interval = 2 ** 7;
 
         // Not using modulo here, since the number of packet sent might not be
         // exactly a multiple of 2^7
-        if (Math.floor(packetCount / interval) - Math.floor(this._prevTotalPackets / interval) > 0)
+        if (Math.floor(this._totalPackets / interval) - Math.floor(this._prevTotalPackets / interval) > 0)
         {
             const senderReport = this.makeRtcpSenderReport();
             this._mediaUdp.sendPacket(senderReport);
-            this._prevTotalPackets = this._sequence;
+            this._prevTotalPackets = this._totalPackets;
         }
     }
 
@@ -88,8 +88,8 @@ export class BaseMediaPacketizer {
     }
 
     public getNewSequence(): number {
-        this._sequence = (this._sequence + 1) % max_int32bit;
-        return this._sequence % max_int16bit;
+        this._sequence = (this._sequence + 1) % max_int16bit;
+        return this._sequence;
     }
 
     public incrementTimestamp(incrementBy: number): void {
@@ -132,7 +132,7 @@ export class BaseMediaPacketizer {
         senderReport.writeUInt32BE(ntpTimestampMsw, 0);
         senderReport.writeUInt32BE(ntpTimestampLsw, 4);
         senderReport.writeUInt32BE(this._timestamp, 8);
-        senderReport.writeUInt32BE(this._sequence, 12);
+        senderReport.writeUInt32BE(this._totalPackets, 12);
         senderReport.writeUInt32BE(this._totalBytes, 16);
 
         const nonceBuffer = this._mediaUdp.getNewNonceBuffer();

@@ -30,7 +30,7 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
             bytesSent += packet.length;
         }
 
-        this.onFrameSent(bytesSent);
+        this.onFrameSent(data.length, bytesSent);
     }
 
     public createPacket(chunk: any, isLastPacket = true, isFirstPacket = true): Buffer {
@@ -45,8 +45,8 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
         return Buffer.concat([packetHeader, this.encryptData(packetData, nonceBuffer), nonceBuffer.subarray(0, 4)]);
     }
 
-    public override onFrameSent(bytesSent: number): void {
-        super.onFrameSent(bytesSent);
+    public override onFrameSent(packetsSent: number, bytesSent: number): void {
+        super.onFrameSent(packetsSent, bytesSent);
         // video RTP packet timestamp incremental value = 90,000Hz / fps
         this.incrementTimestamp(90000 / streamOpts.fps);
         this.incrementPictureId();

@@ -48,8 +48,8 @@ export class BaseMediaPacketizer {
         this._lastPacketTime = Date.now();
     }
 
-    public onFrameSent(bytesSent: number): void {
-        this._totalPackets++;
+    public onFrameSent(packetsSent: number, bytesSent: number): void {
+        this._totalPackets = this._totalPackets + packetsSent;
         this._totalBytes = (this._totalBytes + bytesSent) % max_int32bit;
 
         // Send a RTCP Sender Report every 2^7 packets

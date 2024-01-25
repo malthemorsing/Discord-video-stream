@@ -73,6 +73,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
             offset += nalu.length;
         }
 
+        let packetsSent = 0;
         let bytesSent = 0;
         let index = 0;
         for (const nalu of nalus) {
@@ -93,6 +94,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
                     nonceBuffer.subarray(0, 4),
                 ]);
                 this.mediaUdp.sendPacket(packet);
+                packetsSent++;
                 bytesSent += packet.length;
             } else {
                 const data = this.partitionDataMTUSizedChunks(nalu.subarray(1));
@@ -121,13 +123,14 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
                         nonceBuffer.subarray(0, 4),
                     ]);
                     this.mediaUdp.sendPacket(packet);
+                    packetsSent++;
                     bytesSent += packet.length;
                 }
             }
             index++;
         }
 
-        this.onFrameSent(bytesSent);
+        this.onFrameSent(packetsSent, bytesSent);
     }
          
     /**
@@ -182,8 +185,8 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
         return Buffer.concat([headerExtensionBuf, fuPayloadHeader, frameData]);
     }
 
-    public override onFrameSent(bytesSent: number): void {
-        super.onFrameSent(bytesSent);
+    public override onFrameSent(packetsSent: number, bytesSent: number): void {
+        super.onFrameSent(packetsSent, bytesSent);
         // video RTP packet timestamp incremental value = 90,000Hz / fps
         this.incrementTimestamp(90000 / streamOpts.fps);
     }

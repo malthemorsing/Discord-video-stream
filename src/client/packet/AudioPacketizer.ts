@@ -23,7 +23,7 @@ export class AudioPacketizer extends BaseMediaPacketizer {
     }
 
     public override onFrameSent(bytesSent: number): void {
-        super.onFrameSent(bytesSent);
+        super.onFrameSent(1, bytesSent);
         this.incrementTimestamp(time_inc);
     }
 }

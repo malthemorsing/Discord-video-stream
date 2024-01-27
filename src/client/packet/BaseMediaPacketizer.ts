@@ -71,7 +71,7 @@ export class BaseMediaPacketizer {
         this._totalBytes = (this._totalBytes + bytesSent) % max_int32bit;
 
         // Not using modulo here, since the number of packet sent might not be
-        // exactly a multiple of 2^7
+        // exactly a multiple of the interval
         if (Math.floor(this._totalPackets / this._srInterval) - Math.floor(this._prevTotalPackets / this._srInterval) > 0)
         {
             const senderReport = this.makeRtcpSenderReport();

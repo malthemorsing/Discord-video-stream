@@ -139,7 +139,7 @@ export class BaseMediaPacketizer {
 
         // Convert from floating point to 32.32 fixed point
         // Convert each part separately to reduce precision loss
-        const ntpTimestamp = this._lastPacketTime - ntpEpoch;
+        const ntpTimestamp = (this._lastPacketTime - ntpEpoch) / 1000;
         const ntpTimestampMsw = Math.floor(ntpTimestamp);
         const ntpTimestampLsw = Math.round((ntpTimestamp - ntpTimestampMsw) * max_int32bit);
 

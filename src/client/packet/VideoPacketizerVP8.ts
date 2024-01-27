@@ -12,7 +12,7 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
     constructor(connection: MediaUdp) {
         super(connection, 0x65, true);
         this._pictureId = 0;
-        this.srInterval = 5 * streamOpts.fps * 2; // ~5 seconds, assuming ~2 packets per frame
+        this.srInterval = 5 * streamOpts.fps * 3; // ~5 seconds, assuming ~3 packets per frame
     }
 
     private incrementPictureId(): void {

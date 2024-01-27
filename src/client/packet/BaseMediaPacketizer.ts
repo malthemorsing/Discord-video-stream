@@ -7,7 +7,7 @@ export const max_int32bit = 2 ** 32;
 const ntpEpoch = new Date("Jan 01 1900 GMT").getTime();
 
 export class BaseMediaPacketizer {
-    private _ssrc: number = 0;
+    private _ssrc: number;
     private _payloadType: number;
     private _mtu: number;
     private _sequence: number;
@@ -17,6 +17,7 @@ export class BaseMediaPacketizer {
     private _totalPackets: number;
     private _prevTotalPackets: number;
     private _lastPacketTime: number;
+    private _srInterval: number;
 
     private _mediaUdp: MediaUdp;
     private _extensionEnabled: boolean;
@@ -30,6 +31,9 @@ export class BaseMediaPacketizer {
         this._prevTotalPackets = 0;
         this._mtu = 1200;
         this._extensionEnabled = extensionEnabled;
+
+        this._ssrc = 0;
+        this._srInterval = 512; // Sane fallback value for interval
     }
 
     public get ssrc(): number
@@ -43,6 +47,20 @@ export class BaseMediaPacketizer {
         this._totalBytes = this._totalPackets = this._prevTotalPackets = 0;
     }
 
+    /**
+     * The interval (number of packets) between 2 consecutive RTCP Sender
+     * Report packets
+     */
+    public get srInterval(): number
+    {
+        return this._srInterval;
+    }
+
+    public set srInterval(interval: number)
+    {
+        this._srInterval = interval;
+    }
+
     public sendFrame(frame:any): void {
         // override this
         this._lastPacketTime = Date.now();
@@ -52,13 +70,9 @@ export class BaseMediaPacketizer {
         this._totalPackets = this._totalPackets + packetsSent;
         this._totalBytes = (this._totalBytes + bytesSent) % max_int32bit;
 
-        // Send a RTCP Sender Report every 2^7 packets
-        // Number chosen is completely arbitrary
-        const interval = 2 ** 7;
-
         // Not using modulo here, since the number of packet sent might not be
         // exactly a multiple of 2^7
-        if (Math.floor(this._totalPackets / interval) - Math.floor(this._prevTotalPackets / interval) > 0)
+        if (Math.floor(this._totalPackets / this._srInterval) - Math.floor(this._prevTotalPackets / this._srInterval) > 0)
         {
             const senderReport = this.makeRtcpSenderReport();
             this._mediaUdp.sendPacket(senderReport);

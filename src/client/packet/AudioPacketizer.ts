@@ -1,11 +1,12 @@
 import { MediaUdp } from "../voice/MediaUdp";
 import { BaseMediaPacketizer } from "./BaseMediaPacketizer";
 
-const time_inc = (48000 / 100) * 2;
+const frame_size = (48000 / 100) * 2;
 
 export class AudioPacketizer extends BaseMediaPacketizer {
     constructor(connection: MediaUdp) {
         super(connection, 0x78);
+        this.srInterval = 5 * 48000 / frame_size; // ~5 seconds
     }
 
     public override sendFrame(frame:any): void {
@@ -24,6 +25,6 @@ export class AudioPacketizer extends BaseMediaPacketizer {
 
     public override onFrameSent(bytesSent: number): void {
         super.onFrameSent(1, bytesSent);
-        this.incrementTimestamp(time_inc);
+        this.incrementTimestamp(frame_size);
     }
 }

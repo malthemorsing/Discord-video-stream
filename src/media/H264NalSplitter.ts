@@ -1,13 +1,8 @@
 import { Transform, TransformCallback } from "stream";
 
-type NalInfo = {
-    startCodeLength: number;
-    nalLength: number;
-}
-
-const epbSuffix = [0x00, 0x01, 0x02, 0x03];
-const nal3 = Buffer.from([0x00, 0x00, 0x01]);
-const nal4 = Buffer.from([0x00, 0x00, 0x00, 0x01]);
+const emptyBuffer = Buffer.allocUnsafe(0);
+const epbPrefix = Buffer.from([0x00, 0x00, 0x03]);
+const nalSuffix = Buffer.from([0x00, 0x00, 0x01]);
 
 /**
  * Outputs a buffer containing length-delimited nalu units
@@ -31,149 +26,107 @@ export class H264NalSplitter extends Transform {
      */
     rbsp(data: Buffer): Buffer
     {
-        const len = data.byteLength;
-        let pos = 0;
-        let epbs = [];
-        
-        while (pos < len - 3) {
-            if (data[pos] === 0 && data[pos + 1] === 0 && data[pos + 2] === 0x03 && epbSuffix.includes(data[pos + 3])) {
-                epbs.push(pos + 2);
-                pos += 3;
-            } else {
-                pos++;
+        const newData = Buffer.allocUnsafe(data.length);
+        let newLength = 0;
+
+        while (true)
+        {
+            const epbsPos = data.indexOf(epbPrefix);
+            if (epbsPos == -1)
+            {
+                data.copy(newData, newLength);
+                newLength += data.length;
+                break;
             }
+            let copyRange = epbsPos + 3;
+            if (data[epbsPos + 3] <= 0x03)
+            {
+                copyRange--;
+            }
+            data.copy(newData, newLength, 0, copyRange);
+            newLength += copyRange;
+            data = data.subarray(epbsPos + 3);
         }
 
-        if(epbs.length === 0) return data;
-        
-        let rbsp = new Uint8Array(len - epbs.length);
-        
-        // Remove the EPBs
-        pos = 0;
-        for (let i = 0; i < rbsp.length; i++) {
-            if (pos === epbs[0]) {
-                pos++;
-                epbs.shift();
-            }
-            rbsp[i] = data[pos];
-            pos++;
-        }
-
-        return Buffer.from(rbsp);
+        return newData.subarray(0, newLength);
     }
 
     /**
-     * Finds the next nal unit in a buffer
-     * @param buf buffer containing nal units
-     * @returns found nalu unit information
+     * Finds the first NAL unit header in a buffer as efficient as possible
+     * @param buf buffer of data
+     * @returns the index of the first NAL unit header and its length
      */
-    parseNal(buf: Buffer): NalInfo
+    findNalStart(buf: Buffer): { index: number, length: number } | null
     {
-        const nalInfo: NalInfo = {
-            startCodeLength: 0,
-            nalLength: 0
-        }
-
-        if (buf.subarray(0, 3).equals(nal3)) {
-            nalInfo.startCodeLength = 3;
-        }
-        else if (buf.subarray(0, 4).equals(nal4)) {
-            nalInfo.startCodeLength = 4;
-        }
-
-        // If we find the next start code, then we are done
-        const remaining = buf.subarray(nalInfo.startCodeLength);
-        const nal3Pos = remaining.indexOf(nal3);
-        const nal4Pos = remaining.indexOf(nal4);
-
-        if (nal3Pos != -1)
-        {
-            // We found nal3
-            if (nal4Pos != -1)
-            {
-                // We also found nal4, take the minimum of the 2 indices
-                nalInfo.nalLength = nalInfo.startCodeLength + Math.min(nal3Pos, nal4Pos);
-            }
-            else
-            {
-                // We only found nal3
-                nalInfo.nalLength = nalInfo.startCodeLength + nal3Pos;
-            }
-        }
-        else if (nal4Pos != -1)
-        {
-            // We only found nal4
-            nalInfo.nalLength = nalInfo.startCodeLength + nal4Pos;
-        }
-
-        return nalInfo;
+        const pos = buf.indexOf(nalSuffix);
+        if (pos == -1) return null;
+        if (pos > 0 && buf[pos - 1] == 0)
+            return { index: pos - 1, length: 4 };
+        return { index: pos, length: 3 };
     }
 
-    _transform(chunk: any, encoding: BufferEncoding, callback: TransformCallback): void {
-        this._appendChunkToBuf(chunk);
+    processFrame(frame: Buffer): void {
+        if (frame.length == 0) return;
+        const header = frame[0];
 
-        // start chunking
-        while(this._buffer && this._buffer.length > 0) {
-            const nalInfo = this.parseNal(this._buffer);
+        const unitType = header & 0x1f;
 
-            if(nalInfo.nalLength === 0) { // we are missing frame data
-                break;
-            } else {
-                const frame = this._buffer.subarray(nalInfo.startCodeLength, nalInfo.nalLength);
+        if (unitType === NalUnitTypes.AccessUnitDelimiter) {
+            if (this._accessUnit.length > 0) {
+                let sizeOfAccessUnit = 0;
+                this._accessUnit.forEach(nalu => sizeOfAccessUnit += nalu.length);
 
-                this._updateBufLen(nalInfo.nalLength);
+                // total length is sum of all nalu lengths, plus 4 bytes for each nalu
+                const accessUnitBuf = Buffer.alloc(sizeOfAccessUnit + (4 * this._accessUnit.length));
 
-                const header = frame[0];
-
-                const unitType = header & 0x1f;
-
-                if(unitType === NalUnitTypes.AccessUnitDelimiter) {
-                    if(this._accessUnit.length > 0) {
-                        let sizeOfAccessUnit = 0;
-                        this._accessUnit.forEach(nalu => sizeOfAccessUnit += nalu.length);
-
-                        // total length is sum of all nalu lengths, plus 4 bytes for each nalu
-                        const accessUnitBuf = Buffer.alloc(sizeOfAccessUnit + (4 * this._accessUnit.length));
-
-                        let offset = 0;
-                        for(let nalu of this._accessUnit) {
-                            // hacky way of outputting several nal units that belong to the same access unit
-                            accessUnitBuf.writeUint32BE(nalu.length, offset);
-                            offset += 4;
-                            nalu.copy(accessUnitBuf, offset)
-                            offset += nalu.length;
-                        }
-
-                        this.push(accessUnitBuf);
-                        this._accessUnit = [];
-                    }
-                } else {
-                     // remove emulation bytes from frame (only importannt ones like SPS and SEI since its costly operation)
-                     if(unitType === NalUnitTypes.SPS || unitType === NalUnitTypes.SEI) {
-                        const rbspFrame = this.rbsp(frame);
-                        this._accessUnit.push(rbspFrame);
-                    } else {
-                        this._accessUnit.push(frame);
-                    }
+                let offset = 0;
+                for (let nalu of this._accessUnit) {
+                    // hacky way of outputting several nal units that belong to the same access unit
+                    accessUnitBuf.writeUint32BE(nalu.length, offset);
+                    offset += 4;
+                    nalu.copy(accessUnitBuf, offset)
+                    offset += nalu.length;
                 }
+
+                this.push(accessUnitBuf);
+                this._accessUnit = [];
+            }
+        } else {
+            // remove emulation bytes from frame (only importannt ones like SPS and SEI since its costly operation)
+            if (unitType === NalUnitTypes.SPS || unitType === NalUnitTypes.SEI) {
+                const rbspFrame = this.rbsp(frame);
+                this._accessUnit.push(rbspFrame);
+            } else {
+                this._accessUnit.push(frame);
             }
         }
+    }
 
+    _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback): void {
+        let nalStart = this.findNalStart(chunk);
+        if (!this._buffer)
+        {
+            // We just started processing, ignore everything until we find a NAL start
+            if (!nalStart)
+            {
+                callback();
+                return;
+            }
+            chunk = chunk.subarray(nalStart.index + nalStart.length);
+            this._buffer = emptyBuffer;
+        }
+        while (nalStart = this.findNalStart(chunk))
+        {
+            const frame = Buffer.concat([
+                this._buffer,
+                chunk.subarray(0, nalStart.index)
+            ]);
+            this.processFrame(frame);
+            chunk = chunk.subarray(nalStart.index + nalStart.length);
+            this._buffer = emptyBuffer;
+        }
+        this._buffer = Buffer.concat([this._buffer, chunk]);
         callback();
-    }
-
-    _appendChunkToBuf(chunk: any) {
-        if (this._buffer)
-            this._buffer = Buffer.concat([this._buffer, chunk]);
-        else
-            this._buffer = chunk;
-    }
-
-    _updateBufLen(size: number) {
-        if (this._buffer.length > size)
-            this._buffer = this._buffer.subarray(size, this._buffer.length);
-        else
-            this._buffer = undefined;
     }
 }
 

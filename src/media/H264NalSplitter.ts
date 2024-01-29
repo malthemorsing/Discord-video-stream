@@ -77,7 +77,7 @@ export class H264NalSplitter extends Transform {
                 this._accessUnit.forEach(nalu => sizeOfAccessUnit += nalu.length);
 
                 // total length is sum of all nalu lengths, plus 4 bytes for each nalu
-                const accessUnitBuf = Buffer.alloc(sizeOfAccessUnit + (4 * this._accessUnit.length));
+                const accessUnitBuf = Buffer.allocUnsafe(sizeOfAccessUnit + (4 * this._accessUnit.length));
 
                 let offset = 0;
                 for (let nalu of this._accessUnit) {

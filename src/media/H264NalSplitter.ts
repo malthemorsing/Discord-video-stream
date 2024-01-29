@@ -113,17 +113,14 @@ export class H264NalSplitter extends Transform {
             chunk = chunk.subarray(nalStart.index + nalStart.length);
             this._buffer = emptyBuffer;
         }
+        chunk = Buffer.concat([this._buffer, chunk]);
         while (nalStart = this.findNalStart(chunk))
         {
-            const frame = Buffer.concat([
-                this._buffer,
-                chunk.subarray(0, nalStart.index)
-            ]);
+            const frame = chunk.subarray(0, nalStart.index);
             this.processFrame(frame);
             chunk = chunk.subarray(nalStart.index + nalStart.length);
-            this._buffer = emptyBuffer;
         }
-        this._buffer = Buffer.concat([this._buffer, chunk]);
+        this._buffer = chunk;
         callback();
     }
 }

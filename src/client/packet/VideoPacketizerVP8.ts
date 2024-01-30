@@ -12,29 +12,32 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
     constructor(connection: MediaUdp) {
         super(connection, 0x65, true);
         this._pictureId = 0;
+        this.srInterval = 5 * streamOpts.fps * 3; // ~5 seconds, assuming ~3 packets per frame
     }
 
     private incrementPictureId(): void {
-        this._pictureId++;
-        if(this._pictureId > max_int16bit) this._pictureId = 0;
+        this._pictureId = (this._pictureId + 1) % max_int16bit;
     }
 
     public override sendFrame(frame: any): void {
+        super.sendFrame(frame);
         const data = this.partitionDataMTUSizedChunks(frame);
 
+        let bytesSent = 0;
         for (let i = 0; i < data.length; i++) {
             const packet = this.createPacket(data[i], i === (data.length - 1), i === 0);
 
             this.mediaUdp.sendPacket(packet);
+            bytesSent += packet.length;
         }
 
-        this.onFrameSent();
+        this.onFrameSent(data.length, bytesSent);
     }
 
     public createPacket(chunk: any, isLastPacket = true, isFirstPacket = true): Buffer {
         if(chunk.length > this.mtu) throw Error('error packetizing video frame: frame is larger than mtu');
 
-        const packetHeader = this.makeRtpHeader(this.mediaUdp.mediaConnection.videoSsrc, isLastPacket);
+        const packetHeader = this.makeRtpHeader(isLastPacket);
 
         const packetData = this.makeChunk(chunk, isFirstPacket);
     
@@ -43,7 +46,8 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
         return Buffer.concat([packetHeader, this.encryptData(packetData, nonceBuffer), nonceBuffer.subarray(0, 4)]);
     }
 
-    public override onFrameSent(): void {
+    public override onFrameSent(packetsSent: number, bytesSent: number): void {
+        super.onFrameSent(packetsSent, bytesSent);
         // video RTP packet timestamp incremental value = 90,000Hz / fps
         this.incrementTimestamp(90000 / streamOpts.fps);
         this.incrementPictureId();

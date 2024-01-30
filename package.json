@@ -23,6 +23,7 @@
     "@types/fluent-ffmpeg": "^2.1.21",
     "@types/libsodium-wrappers": "^0.7.10",
     "@types/node": "^18.17.4",
+    "@types/ws": "^8.5.10",
     "typescript": "^4.9.5"
   },
   "peerDependencies": {

@@ -51,6 +51,7 @@ import { BaseMediaPacketizer } from "./BaseMediaPacketizer";
 export class VideoPacketizerH264 extends BaseMediaPacketizer {
     constructor(connection: MediaUdp) {
         super(connection, 0x65, true);
+        this.srInterval = 5 * streamOpts.fps * 3; // ~5 seconds, assuming ~3 packets per frame
     }
 
     /**
@@ -59,6 +60,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
      * @param frame h264 video frame
      */
     public override sendFrame(frame: Buffer): void {
+        super.sendFrame(frame);
         let accessUnit = frame;
 
         const nalus: Buffer[] = [];
@@ -72,29 +74,29 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
             offset += nalu.length;
         }
 
+        let packetsSent = 0;
+        let bytesSent = 0;
         let index = 0;
         for (const nalu of nalus) {
             const nal0 = nalu[0];
             const isLastNal = index === nalus.length - 1;
             if (nalu.length <= this.mtu) {
                 // Send as Single-Time Aggregation Packet (STAP-A).
-                const packetHeader = this.makeRtpHeader(
-                    this.mediaUdp.mediaConnection.videoSsrc,
-                    isLastNal
-                );
+                const packetHeader = this.makeRtpHeader(isLastNal);
                 const packetData = Buffer.concat([
                     this.createHeaderExtension(),
                     nalu,
                 ]);
 
                 const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
-                this.mediaUdp.sendPacket(
-                    Buffer.concat([
-                        packetHeader,
-                        this.encryptData(packetData, nonceBuffer),
-                        nonceBuffer.subarray(0, 4),
-                    ])
-                );
+                const packet = Buffer.concat([
+                    packetHeader,
+                    this.encryptData(packetData, nonceBuffer),
+                    nonceBuffer.subarray(0, 4),
+                ]);
+                this.mediaUdp.sendPacket(packet);
+                packetsSent++;
+                bytesSent += packet.length;
             } else {
                 const data = this.partitionDataMTUSizedChunks(nalu.subarray(1));
 
@@ -105,10 +107,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
 
                     const markerBit = isLastNal && isFinalPacket;
 
-                    const packetHeader = this.makeRtpHeader(
-                        this.mediaUdp.mediaConnection.videoSsrc,
-                        markerBit
-                    );
+                    const packetHeader = this.makeRtpHeader(markerBit);
 
                     const packetData = this.makeChunk(
                         data[i],
@@ -119,19 +118,20 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
 
                     // nonce buffer used for encryption. 4 bytes are appended to end of packet
                     const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
-                    this.mediaUdp.sendPacket(
-                        Buffer.concat([
-                            packetHeader,
-                            this.encryptData(packetData, nonceBuffer),
-                            nonceBuffer.subarray(0, 4),
-                        ])
-                    );
+                    const packet = Buffer.concat([
+                        packetHeader,
+                        this.encryptData(packetData, nonceBuffer),
+                        nonceBuffer.subarray(0, 4),
+                    ]);
+                    this.mediaUdp.sendPacket(packet);
+                    packetsSent++;
+                    bytesSent += packet.length;
                 }
             }
             index++;
         }
 
-        this.onFrameSent();
+        this.onFrameSent(packetsSent, bytesSent);
     }
          
     /**
@@ -186,7 +186,8 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
         return Buffer.concat([headerExtensionBuf, fuPayloadHeader, frameData]);
     }
 
-    public override onFrameSent(): void {
+    public override onFrameSent(packetsSent: number, bytesSent: number): void {
+        super.onFrameSent(packetsSent, bytesSent);
         // video RTP packet timestamp incremental value = 90,000Hz / fps
         this.incrementTimestamp(90000 / streamOpts.fps);
     }

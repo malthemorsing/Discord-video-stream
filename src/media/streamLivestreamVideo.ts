@@ -28,11 +28,7 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
             "Connection": "keep-alive"
         }
 
-        if (customHeaders) {
-            for (const [key, value] of Object.entries(customHeaders)) {
-                headers[key] = value;
-            }
-        }
+        headers = { ...headers, ...(customHeaders ?? {}) };
 
         let isHttpUrl = false;
         let isHls = false;

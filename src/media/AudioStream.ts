@@ -6,12 +6,14 @@ class AudioStream extends Writable {
     public count: number;
     public sleepTime: number;
     public startTime?: number;
-    
-    constructor(udp: MediaUdp) {
+    private noSleep: boolean;
+
+    constructor(udp: MediaUdp, noSleep = false) {
         super();
         this.udp = udp;
         this.count = 0;
         this.sleepTime = 20;
+        this.noSleep = noSleep;
     }
 
     _write(chunk: any, _: BufferEncoding, callback: (error?: Error | null) => void) {
@@ -22,9 +24,17 @@ class AudioStream extends Writable {
         this.udp.sendAudioFrame(chunk);
         
         const next = ((this.count + 1) * this.sleepTime) - (performance.now() - this.startTime);
-        setTimeout(() => {
+
+        if (this.noSleep)
+        {
             callback();
-        }, next);
+        }
+        else
+        {
+            setTimeout(() => {
+                callback();
+            }, next);
+        }
     }
 }
 

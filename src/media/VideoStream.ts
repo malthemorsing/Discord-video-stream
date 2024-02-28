@@ -6,12 +6,14 @@ export class VideoStream extends Writable {
     public count: number;
     public sleepTime: number;
     public startTime?: number;
-    
-    constructor(udp: MediaUdp, fps: number = 30) {
+    private noSleep: boolean;
+
+    constructor(udp: MediaUdp, fps: number = 30, noSleep = false) {
         super();
         this.udp = udp;
         this.count = 0;
         this.sleepTime = 1000 / fps;
+        this.noSleep = noSleep;
     }
 
     public setSleepTime(time: number) {
@@ -27,8 +29,15 @@ export class VideoStream extends Writable {
 
         const next = ( (this.count + 1) * this.sleepTime) - (performance.now() - this.startTime);
 
-       setTimeout(() => {
+        if (this.noSleep)
+        {
             callback();
-        }, next);
+        }
+        else
+        {
+            setTimeout(() => {
+                callback();
+            }, next);
+        }
     }
 }

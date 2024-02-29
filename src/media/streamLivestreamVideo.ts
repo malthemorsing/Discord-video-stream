@@ -6,7 +6,7 @@ import { MediaUdp } from '../client/voice/MediaUdp';
 import { StreamOutput } from '@dank074/fluent-ffmpeg-multistream-ts';
 import { streamOpts } from '../client/StreamOpts';
 import { Readable, Transform } from 'stream';
-import { H264NalSplitter } from './H264NalSplitter';
+import { H264NalSplitter } from './AnnexBNalSplitter';
 import { VideoStream } from './VideoStream';
 
 export let command: ffmpeg.FfmpegCommand;

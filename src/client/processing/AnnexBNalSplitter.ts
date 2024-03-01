@@ -1,4 +1,11 @@
 import { Transform, TransformCallback } from "stream";
+import {
+    H264Helpers,
+    H265Helpers,
+    H264NalUnitTypes,
+    H265NalUnitTypes,
+    type AnnexBHelpers
+} from "./AnnexBHelper.js";
 
 const emptyBuffer = Buffer.allocUnsafe(0);
 const epbPrefix = Buffer.from([0x00, 0x00, 0x03]);
@@ -15,6 +22,7 @@ const nalSuffix = Buffer.from([0x00, 0x00, 0x01]);
 class AnnexBNalSplitter extends Transform {
     private _buffer: Buffer;
     private _accessUnit: Buffer[] = [];
+    protected _nalFunctions: AnnexBHelpers;
 
     /**
      * Removes emulation prevention bytes from a nalu frame
@@ -60,14 +68,6 @@ class AnnexBNalSplitter extends Transform {
         return { index: pos, length: 3 };
     }
 
-    getUnitType(frame: Buffer): number {
-        throw new Error("Not implemented");
-    }
-
-    isAUD(unitType: number): boolean {
-        throw new Error("Not implemented");
-    }
-
     removeEpbs(frame: Buffer, unitType: number): Buffer {
         throw new Error("Not implemented");
     }
@@ -75,9 +75,9 @@ class AnnexBNalSplitter extends Transform {
     processFrame(frame: Buffer): void {
         if (frame.length == 0) return;
 
-        const unitType = this.getUnitType(frame);
+        const unitType = this._nalFunctions.getUnitType(frame);
 
-        if (this.isAUD(unitType)) {
+        if (this._nalFunctions.isAUD(unitType)) {
             if (this._accessUnit.length > 0) {
                 // total length is sum of all nalu lengths, plus 4 bytes for each nalu
                 let sizeOfAccessUnit = this._accessUnit.reduce((acc, nalu) => acc + nalu.length + 4, 0);
@@ -123,34 +123,12 @@ class AnnexBNalSplitter extends Transform {
     }
 }
 
-enum H264NalUnitTypes {
-    Unspecified,
-    CodedSliceNonIDR,
-    CodedSlicePartitionA,
-    CodedSlicePartitionB,
-    CodedSlicePartitionC,
-    CodedSliceIdr,
-    SEI,
-    SPS,
-    PPS,
-    AccessUnitDelimiter,
-    EndOfSequence,
-    EndOfStream,
-    FillerData,
-    SEIExtenstion,
-    PrefixNalUnit,
-    SubsetSPS,
-}
-
 export class H264NalSplitter extends AnnexBNalSplitter {
-    getUnitType(frame: Buffer): number {
-        return frame[0] & 0x1f;
+    constructor()
+    {
+        super();
+        this._nalFunctions = H264Helpers;
     }
-
-    isAUD(unitType: number): boolean {
-        return unitType === H264NalUnitTypes.AccessUnitDelimiter;
-    }
-
     removeEpbs(frame: Buffer, unitType: number): Buffer {
         if (unitType === H264NalUnitTypes.SPS || unitType === H264NalUnitTypes.SEI)
             return this.rbsp(frame);
@@ -158,82 +136,12 @@ export class H264NalSplitter extends AnnexBNalSplitter {
     }
 }
 
-enum H265NalUnitTypes {
-    TRAIL_N = 0,
-    TRAIL_R = 1,
-    TSA_N = 2,
-    TSA_R = 3,
-    STSA_N = 4,
-    STSA_R = 5,
-    RADL_N = 6,
-    RADL_R = 7,
-    RASL_N = 8,
-    RASL_R = 9,
-    RSV_VCL_N10 = 10,
-    RSV_VCL_R11 = 11,
-    RSV_VCL_N12 = 12,
-    RSV_VCL_R13 = 13,
-    RSV_VCL_N14 = 14,
-    RSV_VCL_R15 = 15,
-    BLA_W_LP = 16,
-    BLA_W_RADL = 17,
-    BLA_N_LP = 18,
-    IDR_W_RADL = 19,
-    IDR_N_LP = 20,
-    CRA_NUT = 21,
-    RSV_IRAP_VCL22 = 22,
-    RSV_IRAP_VCL23 = 23,
-    RSV_VCL24 = 24,
-    RSV_VCL25 = 25,
-    RSV_VCL26 = 26,
-    RSV_VCL27 = 27,
-    RSV_VCL28 = 28,
-    RSV_VCL29 = 29,
-    RSV_VCL30 = 30,
-    RSV_VCL31 = 31,
-    VPS_NUT = 32,
-    SPS_NUT = 33,
-    PPS_NUT = 34,
-    AUD_NUT = 35,
-    EOS_NUT = 36,
-    EOB_NUT = 37,
-    FD_NUT = 38,
-    PREFIX_SEI_NUT = 39,
-    SUFFIX_SEI_NUT = 40,
-    RSV_NVCL41 = 41,
-    RSV_NVCL42 = 42,
-    RSV_NVCL43 = 43,
-    RSV_NVCL44 = 44,
-    RSV_NVCL45 = 45,
-    RSV_NVCL46 = 46,
-    RSV_NVCL47 = 47,
-    UNSPEC48 = 48,
-    UNSPEC49 = 49,
-    UNSPEC50 = 50,
-    UNSPEC51 = 51,
-    UNSPEC52 = 52,
-    UNSPEC53 = 53,
-    UNSPEC54 = 54,
-    UNSPEC55 = 55,
-    UNSPEC56 = 56,
-    UNSPEC57 = 57,
-    UNSPEC58 = 58,
-    UNSPEC59 = 59,
-    UNSPEC60 = 60,
-    UNSPEC61 = 61,
-    UNSPEC62 = 62,
-    UNSPEC63 = 63,
-};
-
 export class H265NalSplitter extends AnnexBNalSplitter {
-    getUnitType(frame: Buffer): number {
-        return (frame[0] >> 1) & 0x3f;
+    constructor()
+    {
+        super();
+        this._nalFunctions = H265Helpers;
     }
-
-    isAUD(unitType: number): boolean {
-        return unitType === H265NalUnitTypes.AUD_NUT;
-    }
-
     removeEpbs(frame: Buffer, unitType: number): Buffer {
         if (
             unitType === H265NalUnitTypes.SPS_NUT        ||

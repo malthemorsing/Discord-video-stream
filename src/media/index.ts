@@ -1,5 +1,5 @@
 export * from './AudioStream';
-export * from './IvfReader';
+export * from '../client/processing/IvfSplitter';
 export * from './streamLivestreamVideo';
 export * from './VideoStream';
-export * from './AnnexBNalSplitter';
+export * from '../client/processing/AnnexBNalSplitter';

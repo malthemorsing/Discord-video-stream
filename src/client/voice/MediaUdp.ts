@@ -46,10 +46,13 @@ export class MediaUdp {
         {
             case "H264":
                 this._videoPacketizer = new VideoPacketizerH264(this);
+                break;
             case "H265":
                 this._videoPacketizer = new VideoPacketizerH265(this);
+                break;
             case "VP8":
                 this._videoPacketizer = new VideoPacketizerVP8(this);
+                break;
             default:
                 throw new Error(`Packetizer not implemented for ${videoCodec}`)
         }

@@ -86,7 +86,7 @@ export enum H265NalUnitTypes {
 
 export interface AnnexBHelpers {
     getUnitType(frame: Buffer): number;
-    getNaluHeader(frame: Buffer): Buffer;
+    splitHeader(frame: Buffer): [Buffer, Buffer];
     isAUD(unitType: number): boolean;
 }
 
@@ -94,8 +94,8 @@ export const H264Helpers: AnnexBHelpers = {
     getUnitType(frame) {
         return frame[0] & 0x1f;
     },
-    getNaluHeader(frame) {
-        return frame.subarray(0, 1);
+    splitHeader(frame) {
+        return [frame.subarray(0, 1), frame.subarray(1)];
     },
     isAUD(unitType) {
         return unitType === H264NalUnitTypes.AccessUnitDelimiter;
@@ -106,8 +106,8 @@ export const H265Helpers: AnnexBHelpers = {
     getUnitType(frame) {
         return (frame[0] >> 1) & 0x3f;
     },
-    getNaluHeader(frame) {
-        return frame.subarray(0, 2);
+    splitHeader(frame) {
+        return [frame.subarray(0, 2), frame.subarray(2)];
     },
     isAUD(unitType) {
         return unitType === H265NalUnitTypes.AUD_NUT;

@@ -107,8 +107,8 @@ class VideoPacketizerAnnexB extends BaseMediaPacketizer {
                 packetsSent++;
                 bytesSent += packet.length;
             } else {
-                const naluHeader = this._nalFunctions.getNaluHeader(nalu);
-                const data = this.partitionDataMTUSizedChunks(nalu.subarray(1));
+                const [naluHeader, naluData] = this._nalFunctions.splitHeader(nalu);
+                const data = this.partitionDataMTUSizedChunks(naluData);
 
                 // Send as Fragmentation Unit A (FU-A):
                 for (let i = 0; i < data.length; i++) {

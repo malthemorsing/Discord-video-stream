@@ -1,6 +1,11 @@
 import { streamOpts } from "../StreamOpts";
 import { MediaUdp } from "../voice/MediaUdp";
 import { BaseMediaPacketizer } from "./BaseMediaPacketizer";
+import {
+    H264Helpers,
+    H265Helpers,
+    type AnnexBHelpers
+} from "../processing/AnnexBHelper.js";
 
 /**
  * Annex B format
@@ -51,7 +56,9 @@ import { BaseMediaPacketizer } from "./BaseMediaPacketizer";
          |
          ...
  */
-export class VideoPacketizerH264 extends BaseMediaPacketizer {
+class VideoPacketizerAnnexB extends BaseMediaPacketizer {
+    protected _nalFunctions: AnnexBHelpers;
+
     constructor(connection: MediaUdp) {
         super(connection, 0x65, true);
         this.srInterval = 5 * streamOpts.fps * 3; // ~5 seconds, assuming ~3 packets per frame
@@ -60,7 +67,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
     /**
      * Sends packets after partitioning the video frame into
      * MTU-sized chunks
-     * @param frame h264 video frame
+     * @param frame Annex B video frame
      */
     public override sendFrame(frame: Buffer): void {
         super.sendFrame(frame);
@@ -81,7 +88,6 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
         let bytesSent = 0;
         let index = 0;
         for (const nalu of nalus) {
-            const nal0 = nalu[0];
             const isLastNal = index === nalus.length - 1;
             if (nalu.length <= this.mtu) {
                 // Send as Single NAL Unit Packet.
@@ -101,6 +107,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
                 packetsSent++;
                 bytesSent += packet.length;
             } else {
+                const naluHeader = this._nalFunctions.getNaluHeader(nalu);
                 const data = this.partitionDataMTUSizedChunks(nalu.subarray(1));
 
                 // Send as Fragmentation Unit A (FU-A):
@@ -112,13 +119,15 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
 
                     const packetHeader = this.makeRtpHeader(markerBit);
 
-                    const packetData = this.makeChunk(
-                        data[i],
-                        isFirstPacket,
-                        isFinalPacket,
-                        nal0
-                    );
-
+                    const packetData = Buffer.concat([
+                        this.createHeaderExtension(),
+                        this.makeFragmentationUnitHeader(
+                            isFirstPacket,
+                            isFinalPacket,
+                            naluHeader
+                        ),
+                        data[i]
+                    ]);
                     // nonce buffer used for encryption. 4 bytes are appended to end of packet
                     const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
                     const packet = Buffer.concat([
@@ -137,6 +146,18 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
         this.onFrameSent(packetsSent, bytesSent);
     }
 
+    protected makeFragmentationUnitHeader(isFirstPacket: boolean, isLastPacket: boolean, naluHeader: Buffer): Buffer {
+        throw new Error("Not implemented");
+    }
+
+    public override onFrameSent(packetsSent: number, bytesSent: number): void {
+        super.onFrameSent(packetsSent, bytesSent);
+        // video RTP packet timestamp incremental value = 90,000Hz / fps
+        this.incrementTimestamp(90000 / streamOpts.fps);
+    }
+}
+
+export class VideoPacketizerH264 extends VideoPacketizerAnnexB {
     /**
      * The FU indicator octet has the following format:
         
@@ -162,16 +183,15 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
             E: Set to 1 for the end of the NAL FU (i.e. the last packet in the frame).
             R: Reserved bit must be 0.
             Type: The NAL unit payload type, comes from NAL packet (NOTE: this IS the type of the NAL message).
- * @param frameData 
  * @param isFirstPacket 
  * @param isLastPacket 
- * @returns payload for FU-A packet
+ * @param naluHeader
+ * @returns FU-A packets
  */
-    private makeChunk(frameData: any, isFirstPacket: boolean, isLastPacket: boolean, nal0: number): Buffer {
-        const headerExtensionBuf = this.createHeaderExtension();
-
+    protected makeFragmentationUnitHeader(isFirstPacket: boolean, isLastPacket: boolean, naluHeader: Buffer): Buffer {
+        const nal0 = naluHeader[0];
         const fuPayloadHeader = Buffer.alloc(2);
-        const nalType = nal0 & 0x1f;
+        const nalType = H264Helpers.getUnitType(naluHeader);
         const fnri = nal0 & 0xe0;
 
         // set fu indicator
@@ -186,12 +206,57 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
             fuPayloadHeader[1] = nalType; // no start or end bit
         }
 
-        return Buffer.concat([headerExtensionBuf, fuPayloadHeader, frameData]);
+        return fuPayloadHeader;
     }
+}
 
-    public override onFrameSent(packetsSent: number, bytesSent: number): void {
-        super.onFrameSent(packetsSent, bytesSent);
-        // video RTP packet timestamp incremental value = 90,000Hz / fps
-        this.incrementTimestamp(90000 / streamOpts.fps);
+export class VideoPacketizerH265 extends VideoPacketizerAnnexB {
+    /**
+     * The FU indicator octet has the following format:
+
+            +---------------+---------------+
+            |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |F|   Type    |  LayerId  | TID |
+            +-------------+-----------------+
+            
+            All other fields except Type come from the NAL being transmitted.
+            Type = 49 for FU-A (NOTE: this is the type of the H265 RTP header 
+            and NOT the NAL type).
+            
+            The FU header has the following format:
+            
+            +---------------+
+            |0|1|2|3|4|5|6|7|
+            +-+-+-+-+-+-+-+-+
+            |S|E|    Type   |
+            +---------------+
+            
+            S: Set to 1 for the start of the NAL FU (i.e. first packet in frame).
+            E: Set to 1 for the end of the NAL FU (i.e. the last packet in the frame).
+            Type: The NAL unit payload type, comes from NAL packet (NOTE: this IS the type of the NAL message).
+ * @param isFirstPacket 
+ * @param isLastPacket 
+ * @param naluHeader
+ * @returns FU-A packets
+ */
+    protected makeFragmentationUnitHeader(isFirstPacket: boolean, isLastPacket: boolean, naluHeader: Buffer): Buffer {
+        const fuIndicator = Buffer.from(naluHeader);
+        const nalType = H265Helpers.getUnitType(naluHeader);
+
+        // clear NAL type and set it to 49
+        fuIndicator[0] = (fuIndicator[0] & 0b10000001) | (49 << 1);
+
+        const fuHeader = Buffer.allocUnsafe(1);
+        // set fu header
+        if (isFirstPacket) {
+            fuHeader[0] = 0x80 | nalType; // set start bit
+        } else if (isLastPacket) {
+            fuHeader[0] = 0x40 | nalType; // set last bit
+        } else {
+            fuHeader[0] = nalType; // no start or end bit
+        }
+
+        return Buffer.concat([fuIndicator, fuHeader]);
     }
 }

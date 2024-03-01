@@ -4,7 +4,7 @@ import { AudioPacketizer } from '../packet/AudioPacketizer';
 import { BaseMediaPacketizer, max_int32bit } from '../packet/BaseMediaPacketizer';
 import { VideoPacketizerVP8 } from '../packet/VideoPacketizerVP8';
 import { streamOpts } from '../StreamOpts';
-import { VideoPacketizerH264 } from '../packet/VideoPacketizerH264';
+import { VideoPacketizerH264 } from '../packet/VideoPacketizerAnnexB';
 import { BaseMediaConnection } from './BaseMediaConnection';
 
 // credit to discord.js

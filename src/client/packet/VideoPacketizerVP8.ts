@@ -19,7 +19,7 @@ export class VideoPacketizerVP8 extends BaseMediaPacketizer {
         this._pictureId = (this._pictureId + 1) % max_int16bit;
     }
 
-    public override sendFrame(frame: any): void {
+    public override sendFrame(frame: Buffer): void {
         super.sendFrame(frame);
         const data = this.partitionDataMTUSizedChunks(frame);
 

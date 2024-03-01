@@ -158,6 +158,10 @@ class VideoPacketizerAnnexB extends BaseMediaPacketizer {
 }
 
 export class VideoPacketizerH264 extends VideoPacketizerAnnexB {
+    constructor(connection: MediaUdp) {
+        super(connection);
+        this._nalFunctions = H264Helpers;
+    }
     /**
      * The FU indicator octet has the following format:
         
@@ -211,6 +215,10 @@ export class VideoPacketizerH264 extends VideoPacketizerAnnexB {
 }
 
 export class VideoPacketizerH265 extends VideoPacketizerAnnexB {
+    constructor(connection: MediaUdp) {
+        super(connection);
+        this._nalFunctions = H265Helpers;
+    }
     /**
      * The FU indicator octet has the following format:
 

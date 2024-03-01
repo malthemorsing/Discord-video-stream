@@ -3,37 +3,40 @@ import { MediaUdp } from "../voice/MediaUdp";
 import { BaseMediaPacketizer } from "./BaseMediaPacketizer";
 
 /**
- * H264 format
+ * Annex B format
  * 
- * Packetizer for H264 NAL. This method does NOT support
-    aggregation packets where multiple NALs are sent as a single RTP payload.
-    The supported H264 header type is Single-Time Aggregation Packet type A 
-    (STAP-A) and Fragmentation Unit A (FU-A). The headers produced correspond
-    to H264 packetization-mode=1.
+ * Packetizer for Annex B NAL. This method does NOT support aggregation packets
+ * where multiple NALs are sent as a single RTP payload. The supported payload
+ * type is Single NAL Unit Packet and Fragmentation Unit A (FU-A). The headers
+ * produced correspond to packetization-mode=1.
 
          RTP Payload Format for H.264 Video:
          https://tools.ietf.org/html/rfc6184
+
+         RTP Payload Format for HEVC Video:
+         https://tools.ietf.org/html/rfc7798
          
-         FFmpeg H264 RTP packetisation code:
+         FFmpeg H264/HEVC RTP packetisation code:
          https://github.com/FFmpeg/FFmpeg/blob/master/libavformat/rtpenc_h264_hevc.c
          
          When the payload size is less than or equal to max RTP payload, send as 
-         Single-Time Aggregation Packet (STAP):
-         https://tools.ietf.org/html/rfc6184#section-5.7.1
+         Single NAL Unit Packet:
+         https://tools.ietf.org/html/rfc6184#section-5.6
+         https://tools.ietf.org/html/rfc7798#section-4.4.1
          
-              0                   1                   2                   3
+         0                   1                   2                   3
          0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
          +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-         |                          RTP Header                           |
-         +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-         |STAP-A NAL HDR |         NALU 1 Size           | NALU 1 HDR    |
-         +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-         
-         +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
          |F|NRI|  Type   |                                               |
-         +-+-+-+-+-+-+-+-+
+         +-+-+-+-+-+-+-+-+                                               |
+         |                                                               |
+         |               Bytes 2..n of a single NAL unit                 |
+         |                                                               |
+         |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+         |                               :...OPTIONAL RTP padding        |
+         +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
          
-         Type = 24 for STAP-A (NOTE: this is the type of the H264 RTP header 
+         Type = 24 for STAP-A (NOTE: this is the type of the RTP header 
          and NOT the NAL type).
          
          When the payload size is greater than max RTP payload, send as 
@@ -81,7 +84,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
             const nal0 = nalu[0];
             const isLastNal = index === nalus.length - 1;
             if (nalu.length <= this.mtu) {
-                // Send as Single-Time Aggregation Packet (STAP-A).
+                // Send as Single NAL Unit Packet.
                 const packetHeader = this.makeRtpHeader(isLastNal);
                 const packetData = Buffer.concat([
                     this.createHeaderExtension(),
@@ -133,7 +136,7 @@ export class VideoPacketizerH264 extends BaseMediaPacketizer {
 
         this.onFrameSent(packetsSent, bytesSent);
     }
-         
+
     /**
      * The FU indicator octet has the following format:
         

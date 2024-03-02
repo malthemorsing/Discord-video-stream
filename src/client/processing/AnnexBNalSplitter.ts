@@ -144,6 +144,7 @@ export class H265NalSplitter extends AnnexBNalSplitter {
     }
     removeEpbs(frame: Buffer, unitType: number): Buffer {
         if (
+            unitType === H265NalUnitTypes.VPS_NUT        ||
             unitType === H265NalUnitTypes.SPS_NUT        ||
             unitType === H265NalUnitTypes.SUFFIX_SEI_NUT ||
             unitType === H265NalUnitTypes.PREFIX_SEI_NUT

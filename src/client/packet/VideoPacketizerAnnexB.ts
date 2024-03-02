@@ -249,22 +249,22 @@ export class VideoPacketizerH265 extends VideoPacketizerAnnexB {
  * @returns FU-A packets
  */
     protected makeFragmentationUnitHeader(isFirstPacket: boolean, isLastPacket: boolean, naluHeader: Buffer): Buffer {
-        const fuIndicator = Buffer.from(naluHeader);
+        const fuIndicatorHeader = Buffer.allocUnsafe(3);
+        naluHeader.copy(fuIndicatorHeader);
         const nalType = H265Helpers.getUnitType(naluHeader);
 
         // clear NAL type and set it to 49
-        fuIndicator[0] = (fuIndicator[0] & 0b10000001) | (49 << 1);
+        fuIndicatorHeader[0] = (fuIndicatorHeader[0] & 0b10000001) | (49 << 1);
 
-        const fuHeader = Buffer.allocUnsafe(1);
         // set fu header
         if (isFirstPacket) {
-            fuHeader[0] = 0x80 | nalType; // set start bit
+            fuIndicatorHeader[2] = 0x80 | nalType; // set start bit
         } else if (isLastPacket) {
-            fuHeader[0] = 0x40 | nalType; // set last bit
+            fuIndicatorHeader[2] = 0x40 | nalType; // set last bit
         } else {
-            fuHeader[0] = nalType; // no start or end bit
+            fuIndicatorHeader[2] = nalType; // no start or end bit
         }
 
-        return Buffer.concat([fuIndicator, fuHeader]);
+        return fuIndicatorHeader;
     }
 }

@@ -59,8 +59,8 @@ import {
 class VideoPacketizerAnnexB extends BaseMediaPacketizer {
     protected _nalFunctions: AnnexBHelpers;
 
-    constructor(connection: MediaUdp, payloadType: number) {
-        super(connection, payloadType, true);
+    constructor(connection: MediaUdp) {
+        super(connection, 0x65, true);
         this.srInterval = 5 * streamOpts.fps * 3; // ~5 seconds, assuming ~3 packets per frame
     }
 
@@ -159,7 +159,7 @@ class VideoPacketizerAnnexB extends BaseMediaPacketizer {
 
 export class VideoPacketizerH264 extends VideoPacketizerAnnexB {
     constructor(connection: MediaUdp) {
-        super(connection, 0x65);
+        super(connection);
         this._nalFunctions = H264Helpers;
     }
     /**
@@ -216,7 +216,7 @@ export class VideoPacketizerH264 extends VideoPacketizerAnnexB {
 
 export class VideoPacketizerH265 extends VideoPacketizerAnnexB {
     constructor(connection: MediaUdp) {
-        super(connection, 0x67);
+        super(connection);
         this._nalFunctions = H265Helpers;
     }
     /**

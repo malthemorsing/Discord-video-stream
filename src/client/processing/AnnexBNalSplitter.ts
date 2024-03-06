@@ -143,13 +143,8 @@ export class H265NalSplitter extends AnnexBNalSplitter {
         this._nalFunctions = H265Helpers;
     }
     removeEpbs(frame: Buffer, unitType: number): Buffer {
-        if (
-            unitType === H265NalUnitTypes.VPS_NUT        ||
-            unitType === H265NalUnitTypes.SPS_NUT        ||
-            unitType === H265NalUnitTypes.SUFFIX_SEI_NUT ||
-            unitType === H265NalUnitTypes.PREFIX_SEI_NUT
-        )
-            return this.rbsp(frame);
+        // We do not remove the EPBS, since the encoder expects it to be there
+        // See https://www.motionspell.com/2019/01/31/the-perils-of-start-codes
         return frame;
     }
 }

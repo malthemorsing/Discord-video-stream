@@ -16,6 +16,7 @@ What I implemented and what I did not.
  - [X] VP8
  - [ ] VP9
  - [X] H.264
+ - [X] H.265
 
 #### Packet types
  - [X] RTP (sending of realtime data)

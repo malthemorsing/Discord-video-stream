@@ -76,29 +76,7 @@ class AnnexBNalSplitter extends Transform {
         if (frame.length == 0) return;
 
         const unitType = this._nalFunctions.getUnitType(frame);
-
-        if (this._nalFunctions.isAUD(unitType)) {
-            if (this._accessUnit.length > 0) {
-                // total length is sum of all nalu lengths, plus 4 bytes for each nalu
-                let sizeOfAccessUnit = this._accessUnit.reduce((acc, nalu) => acc + nalu.length + 4, 0);
-                const accessUnitBuf = Buffer.allocUnsafe(sizeOfAccessUnit);
-
-                let offset = 0;
-                for (let nalu of this._accessUnit) {
-                    // hacky way of outputting several nal units that belong to the same access unit
-                    accessUnitBuf.writeUint32BE(nalu.length, offset);
-                    offset += 4;
-                    nalu.copy(accessUnitBuf, offset)
-                    offset += nalu.length;
-                }
-
-                this.push(accessUnitBuf);
-                this._accessUnit = [];
-            }
-        } else {
-            // remove emulation bytes from frame (only importannt ones like SPS and SEI since its costly operation)
-            this._accessUnit.push(this.removeEpbs(frame, unitType));
-        }
+        this.push(this.removeEpbs(frame, unitType));
     }
 
     _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback): void {

@@ -1,12 +1,12 @@
 import ffmpeg from 'fluent-ffmpeg';
-import { IvfTransformer } from "./IvfReader";
+import { IvfTransformer } from "../client/processing/IvfSplitter";
 import prism from "prism-media";
 import { AudioStream } from "./AudioStream";
 import { MediaUdp } from '../client/voice/MediaUdp';
 import { StreamOutput } from '@dank074/fluent-ffmpeg-multistream-ts';
 import { streamOpts } from '../client/StreamOpts';
 import { Readable, Transform } from 'stream';
-import { H264NalSplitter } from './H264NalSplitter';
+import { H264NalSplitter } from '../client/processing/AnnexBNalSplitter';
 import { VideoStream } from './VideoStream';
 
 export let command: ffmpeg.FfmpegCommand;

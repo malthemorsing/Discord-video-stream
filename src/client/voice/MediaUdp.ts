@@ -2,9 +2,13 @@ import udpCon from 'dgram';
 import { isIPv4 } from 'net';
 import { AudioPacketizer } from '../packet/AudioPacketizer';
 import { BaseMediaPacketizer, max_int32bit } from '../packet/BaseMediaPacketizer';
-import { VideoPacketizerVP8 } from '../packet/VideoPacketizerVP8';
 import { streamOpts } from '../StreamOpts';
-import { VideoPacketizerH264 } from '../packet/VideoPacketizerH264';
+import {
+    VideoPacketizerH264,
+    VideoPacketizerH265
+} from '../packet/VideoPacketizerAnnexB';
+import { VideoPacketizerVP8 } from '../packet/VideoPacketizerVP8';
+import { normalizeVideoCodec } from '../../utils';
 import { BaseMediaConnection } from './BaseMediaConnection';
 
 // credit to discord.js
@@ -36,8 +40,22 @@ export class MediaUdp {
 
         this._mediaConnection = voiceConnection;
         this._audioPacketizer = new AudioPacketizer(this);
-        if(streamOpts.video_codec === 'VP8') this._videoPacketizer = new VideoPacketizerVP8(this);
-        else this._videoPacketizer = new VideoPacketizerH264(this);
+
+        const videoCodec = normalizeVideoCodec(streamOpts.video_codec);
+        switch (videoCodec)
+        {
+            case "H264":
+                this._videoPacketizer = new VideoPacketizerH264(this);
+                break;
+            case "H265":
+                this._videoPacketizer = new VideoPacketizerH265(this);
+                break;
+            case "VP8":
+                this._videoPacketizer = new VideoPacketizerVP8(this);
+                break;
+            default:
+                throw new Error(`Packetizer not implemented for ${videoCodec}`)
+        }
     }
 
     public getNewNonceBuffer(): Buffer {

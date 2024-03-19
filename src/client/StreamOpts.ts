@@ -5,7 +5,7 @@ export interface StreamOpts {
     bitrateKbps?: number;
     maxBitrateKbps?: number;
     hardware_acceleration?: boolean;
-    video_codec?: 'H264' | 'VP8';
+    video_codec?: string;
 }
 
 export const streamOpts: StreamOpts = {

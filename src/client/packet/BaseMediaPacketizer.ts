@@ -85,7 +85,7 @@ export class BaseMediaPacketizer {
      * @param data buffer to be partitioned
      * @returns array of chunks
      */
-    public partitionDataMTUSizedChunks(data: any): any[] {
+    public partitionDataMTUSizedChunks(data: Buffer): Buffer[] {
         let i = 0;
         let len = data.length;
     
@@ -93,7 +93,7 @@ export class BaseMediaPacketizer {
     
         while (len > 0) {
             const size = Math.min(len, this._mtu);
-            out.push(data.slice(i, i + size));
+            out.push(data.subarray(i, i + size));
             len -= size;
             i += size;
         }

@@ -13,7 +13,7 @@ type VoiceConnectionStatus =
 }
 
 export abstract class BaseMediaConnection {
-    private interval: NodeJS.Timer;
+    private interval: NodeJS.Timeout;
     public udp: MediaUdp;
     public guildId: string;
     public channelId: string;

@@ -58,7 +58,6 @@ import {
  */
 class VideoPacketizerAnnexB extends BaseMediaPacketizer {
     protected _nalFunctions: AnnexBHelpers;
-    private _naluCount = 0;
 
     constructor(connection: MediaUdp) {
         super(connection, 0x65, true);
@@ -68,56 +67,36 @@ class VideoPacketizerAnnexB extends BaseMediaPacketizer {
     /**
      * Sends packets after partitioning the video frame into
      * MTU-sized chunks
-     * @param nalu Annex B NAL unit
+     * @param frame Annex B video frame
      */
-    public override sendFrame(nalu: Buffer): void {
-        super.sendFrame(nalu);
+    public override sendFrame(frame: Buffer): void {
+        super.sendFrame(frame);
+        let accessUnit = frame;
+
+        const nalus: Buffer[] = [];
+
+        let offset = 0;
+        while (offset < accessUnit.length) {
+            const naluSize = accessUnit.readUInt32BE(offset);
+            offset += 4;
+            const nalu = accessUnit.subarray(offset, offset + naluSize);
+            nalus.push(nalu);
+            offset += nalu.length;
+        }
 
         let packetsSent = 0;
         let bytesSent = 0;
-
-        const unitType = this._nalFunctions.getUnitType(nalu);
-        const isLastNal = this._nalFunctions.isAUD(unitType);
-        if (nalu.length <= this.mtu) {
-            // Send as Single NAL Unit Packet.
-            const packetHeader = this.makeRtpHeader(isLastNal);
-            const packetData = Buffer.concat([
-                this.createHeaderExtension(),
-                nalu,
-            ]);
-
-            const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
-            const packet = Buffer.concat([
-                packetHeader,
-                this.encryptData(packetData, nonceBuffer),
-                nonceBuffer.subarray(0, 4),
-            ]);
-            this.mediaUdp.sendPacket(packet);
-            packetsSent++;
-            bytesSent += packet.length;
-        } else {
-            const [naluHeader, naluData] = this._nalFunctions.splitHeader(nalu);
-            const data = this.partitionDataMTUSizedChunks(naluData);
-
-            // Send as Fragmentation Unit A (FU-A):
-            for (let i = 0; i < data.length; i++) {
-                const isFirstPacket = i === 0;
-                const isFinalPacket = i === data.length - 1;
-
-                const markerBit = isLastNal && isFinalPacket;
-
-                const packetHeader = this.makeRtpHeader(markerBit);
-
+        let index = 0;
+        for (const nalu of nalus) {
+            const isLastNal = index === nalus.length - 1;
+            if (nalu.length <= this.mtu) {
+                // Send as Single NAL Unit Packet.
+                const packetHeader = this.makeRtpHeader(isLastNal);
                 const packetData = Buffer.concat([
                     this.createHeaderExtension(),
-                    this.makeFragmentationUnitHeader(
-                        isFirstPacket,
-                        isFinalPacket,
-                        naluHeader
-                    ),
-                    data[i]
+                    nalu,
                 ]);
-                // nonce buffer used for encryption. 4 bytes are appended to end of packet
+
                 const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
                 const packet = Buffer.concat([
                     packetHeader,
@@ -127,19 +106,44 @@ class VideoPacketizerAnnexB extends BaseMediaPacketizer {
                 this.mediaUdp.sendPacket(packet);
                 packetsSent++;
                 bytesSent += packet.length;
+            } else {
+                const [naluHeader, naluData] = this._nalFunctions.splitHeader(nalu);
+                const data = this.partitionDataMTUSizedChunks(naluData);
+
+                // Send as Fragmentation Unit A (FU-A):
+                for (let i = 0; i < data.length; i++) {
+                    const isFirstPacket = i === 0;
+                    const isFinalPacket = i === data.length - 1;
+
+                    const markerBit = isLastNal && isFinalPacket;
+
+                    const packetHeader = this.makeRtpHeader(markerBit);
+
+                    const packetData = Buffer.concat([
+                        this.createHeaderExtension(),
+                        this.makeFragmentationUnitHeader(
+                            isFirstPacket,
+                            isFinalPacket,
+                            naluHeader
+                        ),
+                        data[i]
+                    ]);
+                    // nonce buffer used for encryption. 4 bytes are appended to end of packet
+                    const nonceBuffer = this.mediaUdp.getNewNonceBuffer();
+                    const packet = Buffer.concat([
+                        packetHeader,
+                        this.encryptData(packetData, nonceBuffer),
+                        nonceBuffer.subarray(0, 4),
+                    ]);
+                    this.mediaUdp.sendPacket(packet);
+                    packetsSent++;
+                    bytesSent += packet.length;
+                }
             }
+            index++;
         }
 
-        if (isLastNal)
-        {
-            if (this._naluCount > 0)
-                this.onFrameSent(packetsSent, bytesSent);
-            this._naluCount = 0;
-        }
-        else
-        {
-            this._naluCount++;
-        }
+        this.onFrameSent(packetsSent, bytesSent);
     }
 
     protected makeFragmentationUnitHeader(isFirstPacket: boolean, isLastPacket: boolean, naluHeader: Buffer): Buffer {

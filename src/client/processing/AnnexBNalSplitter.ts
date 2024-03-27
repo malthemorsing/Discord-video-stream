@@ -5,7 +5,7 @@ import {
     H264NalUnitTypes,
     H265NalUnitTypes,
     type AnnexBHelpers
-} from "./AnnexBHelper.js";
+} from "./AnnexBHelper";
 
 const emptyBuffer = Buffer.allocUnsafe(0);
 const epbPrefix = Buffer.from([0x00, 0x00, 0x03]);

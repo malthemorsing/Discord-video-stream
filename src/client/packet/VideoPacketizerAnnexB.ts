@@ -1,11 +1,10 @@
-import { streamOpts } from "../StreamOpts";
 import { MediaUdp } from "../voice/MediaUdp";
 import { BaseMediaPacketizer } from "./BaseMediaPacketizer";
 import {
     H264Helpers,
     H265Helpers,
     type AnnexBHelpers
-} from "../processing/AnnexBHelper.js";
+} from "../processing/AnnexBHelper";
 
 /**
  * Annex B format
@@ -61,7 +60,7 @@ class VideoPacketizerAnnexB extends BaseMediaPacketizer {
 
     constructor(connection: MediaUdp) {
         super(connection, 0x65, true);
-        this.srInterval = 5 * streamOpts.fps * 3; // ~5 seconds, assuming ~3 packets per frame
+        this.srInterval = 5 * connection.mediaConnection.streamOptions.fps * 3; // ~5 seconds, assuming ~3 packets per frame
     }
 
     /**
@@ -153,7 +152,7 @@ class VideoPacketizerAnnexB extends BaseMediaPacketizer {
     public override onFrameSent(packetsSent: number, bytesSent: number): void {
         super.onFrameSent(packetsSent, bytesSent);
         // video RTP packet timestamp incremental value = 90,000Hz / fps
-        this.incrementTimestamp(90000 / streamOpts.fps);
+        this.incrementTimestamp(90000 / this.mediaUdp.mediaConnection.streamOptions.fps);
     }
 }
 

@@ -1,7 +1,6 @@
-import { streamOpts } from "../StreamOpts";
 import { VoiceOpCodes } from "./VoiceOpCodes";
 import { MediaUdp } from "./MediaUdp";
-import { normalizeVideoCodec } from "../../utils.js";
+import { normalizeVideoCodec } from "../../utils";
 import WebSocket from 'ws';
 
 type VoiceConnectionStatus =
@@ -10,6 +9,28 @@ type VoiceConnectionStatus =
     hasToken: boolean;
     started: boolean;
     resuming: boolean;
+}
+
+export type SupportedVideoCodec = "H264" | "H265" | "VP8"; // | "VP9" | "AV1";
+
+export interface StreamOptions {
+    width?: number;
+    height?: number;
+    fps?: number;
+    bitrateKbps?: number;
+    maxBitrateKbps?: number;
+    hardware_acceleration?: boolean;
+    video_codec?: SupportedVideoCodec;
+}
+
+const defaultStreamOptions: StreamOptions = {
+    width: 1080,
+    height: 720,
+    fps: 30,
+    bitrateKbps: 1000,
+    maxBitrateKbps: 2500,
+    hardware_acceleration: false,
+    video_codec: 'H264'
 }
 
 export abstract class BaseMediaConnection {
@@ -33,14 +54,18 @@ export abstract class BaseMediaConnection {
     public rtxSsrc: number;
     public modes: string[];
     public secretkey: Uint8Array;
+    private _streamOptions: StreamOptions;
 
-    constructor(guildId: string, botId: string, channelId: string, callback: (udp: MediaUdp) => void) {
+    constructor(guildId: string, botId: string, channelId: string, options: StreamOptions, callback: (udp: MediaUdp) => void) {
         this.status = {
             hasSession: false,
             hasToken: false,
             started: false,
             resuming: false
         }
+
+        this._streamOptions = { ...defaultStreamOptions };
+        this.streamOptions = options;
 
         // make udp client
         this.udp = new MediaUdp(this);
@@ -52,6 +77,20 @@ export abstract class BaseMediaConnection {
     }
 
     public abstract get serverId(): string;
+
+    public get streamOptions(): StreamOptions {
+        return this._streamOptions;
+    }
+
+    public set streamOptions(options: StreamOptions) {
+        this._streamOptions.width = options.width ?? this._streamOptions.width;
+        this._streamOptions.height = options.height ?? this._streamOptions.height;
+        this._streamOptions.fps = options.fps ?? this._streamOptions.fps;
+        this._streamOptions.bitrateKbps = options.bitrateKbps ?? this._streamOptions.bitrateKbps;
+        this._streamOptions.maxBitrateKbps = options.maxBitrateKbps ?? this._streamOptions.maxBitrateKbps;
+        this._streamOptions.hardware_acceleration = options.hardware_acceleration ?? this._streamOptions.hardware_acceleration;
+        this._streamOptions.video_codec = options.video_codec ?? this._streamOptions.video_codec;
+    }
 
     stop(): void {
         clearInterval(this.interval);
@@ -219,7 +258,7 @@ export abstract class BaseMediaConnection {
             protocol: "udp",
             codecs: [
                 { name: "opus", type: "audio", priority: 1000, payload_type: 120 },
-                { name: normalizeVideoCodec(streamOpts.video_codec), type: "video", priority: 1000, payload_type: 101, rtx_payload_type: 102, encode: true, decode: true}
+                { name: normalizeVideoCodec(this.streamOptions.video_codec), type: "video", priority: 1000, payload_type: 101, rtx_payload_type: 102, encode: true, decode: true}
                 //{ name: "VP8", type: "video", priority: 3000, payload_type: 103, rtx_payload_type: 104, encode: true, decode: true }
                 //{ name: "VP9", type: "video", priority: 3000, payload_type: 105, rtx_payload_type: 106 },
             ],
@@ -249,12 +288,12 @@ export abstract class BaseMediaConnection {
                     active:true,
                     quality:100,
                     rtx_ssrc:bool ? this.rtxSsrc : 0,
-                    max_bitrate: streamOpts.maxBitrateKbps * 1000,
-                    max_framerate: streamOpts.fps,
+                    max_bitrate: this.streamOptions.maxBitrateKbps * 1000,
+                    max_framerate: this.streamOptions.fps,
                     max_resolution: {
                         type:"fixed",
-                        width: streamOpts.width,
-                        height: streamOpts.height
+                        width: this.streamOptions.width,
+                        height: this.streamOptions.height
                     }
                 }
             ]

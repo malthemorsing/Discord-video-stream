@@ -5,7 +5,7 @@ import { AudioStream } from "./AudioStream";
 import { MediaUdp } from '../client/voice/MediaUdp';
 import { StreamOutput } from '@dank074/fluent-ffmpeg-multistream-ts';
 import { Readable, Transform } from 'stream';
-import { H264NalSplitter } from '../client/processing/AnnexBNalSplitter';
+import { H264NalSplitter, H265NalSplitter } from '../client/processing/AnnexBNalSplitter';
 import { VideoStream } from './VideoStream';
 import { normalizeVideoCodec } from '../utils';
 
@@ -18,10 +18,18 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
         const videoCodec = normalizeVideoCodec(streamOpts.video_codec);
         let videoOutput: Transform;
 
-        if (videoCodec === 'H264' || videoCodec === 'H265') {
-            videoOutput = new H264NalSplitter();
-        } else {
-            videoOutput = new IvfTransformer();
+        switch(videoCodec) {
+            case 'H264':
+                videoOutput = new H264NalSplitter();
+                break;
+            case 'H265':
+                videoOutput = new H265NalSplitter();
+                break;
+            case "VP8":
+                videoOutput = new IvfTransformer();
+                break;
+            default:
+                throw new Error("Codec not supported");
         }
 
         let headers: map = {
@@ -73,6 +81,7 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                         '-tune zerolatency',
                         '-pix_fmt yuv420p',
                         '-preset ultrafast',
+                        '-profile:v main',
                         `-g ${streamOpts.fps}`,
                         `-x265-params keyint=${streamOpts.fps}:min-keyint=${streamOpts.fps}`,
                         '-bsf:v hevc_metadata=aud=insert'

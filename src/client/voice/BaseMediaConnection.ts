@@ -11,7 +11,7 @@ type VoiceConnectionStatus =
     resuming: boolean;
 }
 
-export type SupportedVideoCodec = "H264" | "H265" | "VP8"; // | "VP9" | "AV1";
+export type SupportedVideoCodec = "H264" | "H265" | "VP8" | "VP9" | "AV1";
 
 export interface StreamOptions {
     width?: number;

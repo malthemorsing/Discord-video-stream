@@ -68,15 +68,14 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                     .size(`${streamOpts.width}x${streamOpts.height}`)
                     .fpsOutput(streamOpts.fps)
                     .videoBitrate(`${streamOpts.bitrateKbps}k`)
-                    .format('h265')
+                    .format('hevc')
                     .outputOptions([
                         '-tune zerolatency',
                         '-pix_fmt yuv420p',
                         '-preset ultrafast',
-                        '-profile:v baseline',
                         `-g ${streamOpts.fps}`,
                         `-x265-params keyint=${streamOpts.fps}:min-keyint=${streamOpts.fps}`,
-                        '-bsf:v h265_metadata=aud=insert'
+                        '-bsf:v hevc_metadata=aud=insert'
                     ]);
             } else {
                 command.output(StreamOutput(videoOutput).url, { end: false })

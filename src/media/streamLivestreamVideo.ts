@@ -14,8 +14,8 @@ export let command: ffmpeg.FfmpegCommand;
 export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaUdp, includeAudio = true, customHeaders?: map) {
     return new Promise<string>((resolve, reject) => {
         const streamOpts = mediaUdp.mediaConnection.streamOptions;
-        const videoStream: VideoStream = new VideoStream(mediaUdp, streamOpts.fps);
-        const videoCodec = normalizeVideoCodec(streamOpts.video_codec);
+        const videoStream: VideoStream = new VideoStream(mediaUdp, streamOpts.fps, streamOpts.readAtNativeFps);
+        const videoCodec = normalizeVideoCodec(streamOpts.videoCodec);
         let videoOutput: Transform;
 
         switch(videoCodec) {
@@ -83,6 +83,7 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                         '-preset ultrafast',
                         '-profile:v main',
                         `-g ${streamOpts.fps}`,
+                        `-bf 0`,
                         `-x265-params keyint=${streamOpts.fps}:min-keyint=${streamOpts.fps}`,
                         '-bsf:v hevc_metadata=aud=insert'
                     ]);
@@ -99,6 +100,7 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                         '-preset ultrafast',
                         '-profile:v baseline',
                         `-g ${streamOpts.fps}`,
+                        `-bf 0`,
                         `-x264-params keyint=${streamOpts.fps}:min-keyint=${streamOpts.fps}`,
                         '-bsf:v h264_metadata=aud=insert'
                     ]);
@@ -123,7 +125,9 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                 opus.pipe(audioStream, { end: false });
             }
 
-            if (streamOpts.hardware_acceleration) command.inputOption('-hwaccel', 'auto');
+            if (streamOpts.hardwareAcceleration) command.inputOption('-hwaccel', 'auto');
+
+            if(streamOpts.readAtNativeFps) command.inputOption('-re')
 
             if (isHttpUrl) {
                 command.inputOption('-headers',

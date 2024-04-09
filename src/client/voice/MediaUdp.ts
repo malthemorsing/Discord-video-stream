@@ -40,7 +40,7 @@ export class MediaUdp {
         this._mediaConnection = voiceConnection;
         this._audioPacketizer = new AudioPacketizer(this);
 
-        const videoCodec = normalizeVideoCodec(this.mediaConnection.streamOptions.video_codec);
+        const videoCodec = normalizeVideoCodec(this.mediaConnection.streamOptions.videoCodec);
         switch (videoCodec)
         {
             case "H264":

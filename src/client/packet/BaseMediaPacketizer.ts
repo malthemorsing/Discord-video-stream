@@ -67,6 +67,8 @@ export class BaseMediaPacketizer {
     }
 
     public onFrameSent(packetsSent: number, bytesSent: number): void {
+        if(!this._mediaUdp.mediaConnection.streamOptions.rtcpSenderReportEnabled) return;
+        
         this._totalPackets = this._totalPackets + packetsSent;
         this._totalBytes = (this._totalBytes + bytesSent) % max_int32bit;
 

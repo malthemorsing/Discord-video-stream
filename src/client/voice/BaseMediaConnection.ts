@@ -19,8 +19,10 @@ export interface StreamOptions {
     fps?: number;
     bitrateKbps?: number;
     maxBitrateKbps?: number;
-    hardware_acceleration?: boolean;
-    video_codec?: SupportedVideoCodec;
+    hardwareAcceleration?: boolean;
+    videoCodec?: SupportedVideoCodec;
+    readAtNativeFps?: boolean;
+    rtcpSenderReportEnabled?: boolean;
 }
 
 const defaultStreamOptions: StreamOptions = {
@@ -29,8 +31,10 @@ const defaultStreamOptions: StreamOptions = {
     fps: 30,
     bitrateKbps: 1000,
     maxBitrateKbps: 2500,
-    hardware_acceleration: false,
-    video_codec: 'H264'
+    hardwareAcceleration: false,
+    videoCodec: 'H264',
+    readAtNativeFps: true,
+    rtcpSenderReportEnabled: true,
 }
 
 export abstract class BaseMediaConnection {
@@ -88,8 +92,10 @@ export abstract class BaseMediaConnection {
         this._streamOptions.fps = options.fps ?? this._streamOptions.fps;
         this._streamOptions.bitrateKbps = options.bitrateKbps ?? this._streamOptions.bitrateKbps;
         this._streamOptions.maxBitrateKbps = options.maxBitrateKbps ?? this._streamOptions.maxBitrateKbps;
-        this._streamOptions.hardware_acceleration = options.hardware_acceleration ?? this._streamOptions.hardware_acceleration;
-        this._streamOptions.video_codec = options.video_codec ?? this._streamOptions.video_codec;
+        this._streamOptions.hardwareAcceleration = options.hardwareAcceleration ?? this._streamOptions.hardwareAcceleration;
+        this._streamOptions.videoCodec = options.videoCodec ?? this._streamOptions.videoCodec;
+        this._streamOptions.readAtNativeFps = options.readAtNativeFps ?? this._streamOptions.readAtNativeFps;
+        this._streamOptions.rtcpSenderReportEnabled = options.rtcpSenderReportEnabled ?? this._streamOptions.rtcpSenderReportEnabled;
     }
 
     stop(): void {
@@ -258,7 +264,7 @@ export abstract class BaseMediaConnection {
             protocol: "udp",
             codecs: [
                 { name: "opus", type: "audio", priority: 1000, payload_type: 120 },
-                { name: normalizeVideoCodec(this.streamOptions.video_codec), type: "video", priority: 1000, payload_type: 101, rtx_payload_type: 102, encode: true, decode: true}
+                { name: normalizeVideoCodec(this.streamOptions.videoCodec), type: "video", priority: 1000, payload_type: 101, rtx_payload_type: 102, encode: true, decode: true}
                 //{ name: "VP8", type: "video", priority: 3000, payload_type: 103, rtx_payload_type: 104, encode: true, decode: true }
                 //{ name: "VP9", type: "video", priority: 3000, payload_type: 105, rtx_payload_type: 106 },
             ],

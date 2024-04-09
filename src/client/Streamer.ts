@@ -3,6 +3,7 @@ import { Client } from 'discord.js-selfbot-v13';
 import { MediaUdp } from "./voice/MediaUdp";
 import { StreamConnection } from "./voice/StreamConnection";
 import { GatewayOpCodes } from "./GatewayOpCodes";
+import { StreamOptions } from "./voice";
 
 export class Streamer {
     private _voiceConnection?: VoiceConnection;
@@ -33,12 +34,13 @@ export class Streamer {
         });
     }
 
-    public joinVoice(guild_id: string, channel_id: string): Promise<MediaUdp> {
+    public joinVoice(guild_id: string, channel_id: string, options?: StreamOptions): Promise<MediaUdp> {
         return new Promise<MediaUdp>((resolve, reject) => {
             this._voiceConnection = new VoiceConnection(
                 guild_id,
                 this.client.user.id,
                 channel_id,
+                options ?? {},
                 (voiceUdp) => {
                     resolve(voiceUdp);
                 }
@@ -47,7 +49,7 @@ export class Streamer {
         });
     }
 
-    public createStream(): Promise<MediaUdp> {
+    public createStream(options?: StreamOptions): Promise<MediaUdp> {
         return new Promise<MediaUdp>((resolve, reject) => {
             if (!this.voiceConnection)
                 reject("cannot start stream without first joining voice channel");
@@ -61,6 +63,7 @@ export class Streamer {
                 this.voiceConnection.guildId,
                 this.client.user.id,
                 this.voiceConnection.channelId,
+                options ?? {},
                 (voiceUdp) => {
                     resolve(voiceUdp);
                 }

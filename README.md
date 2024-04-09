@@ -17,6 +17,7 @@ What I implemented and what I did not.
  - [ ] VP9
  - [X] H.264
  - [X] H.265
+ - [ ] AV1
 
 #### Packet types
  - [X] RTP (sending of realtime data)

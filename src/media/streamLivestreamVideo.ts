@@ -4,23 +4,32 @@ import prism from "prism-media";
 import { AudioStream } from "./AudioStream";
 import { MediaUdp } from '../client/voice/MediaUdp';
 import { StreamOutput } from '@dank074/fluent-ffmpeg-multistream-ts';
-import { streamOpts } from '../client/StreamOpts';
 import { Readable, Transform } from 'stream';
-import { H264NalSplitter } from '../client/processing/AnnexBNalSplitter';
+import { H264NalSplitter, H265NalSplitter } from '../client/processing/AnnexBNalSplitter';
 import { VideoStream } from './VideoStream';
+import { normalizeVideoCodec } from '../utils';
 
 export let command: ffmpeg.FfmpegCommand;
 
 export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaUdp, includeAudio = true, customHeaders?: map) {
     return new Promise<string>((resolve, reject) => {
-        const videoStream: VideoStream = new VideoStream(mediaUdp, streamOpts.fps);
-
+        const streamOpts = mediaUdp.mediaConnection.streamOptions;
+        const videoStream: VideoStream = new VideoStream(mediaUdp, streamOpts.fps, streamOpts.readAtNativeFps);
+        const videoCodec = normalizeVideoCodec(streamOpts.videoCodec);
         let videoOutput: Transform;
 
-        if (streamOpts.video_codec === 'H264') {
-            videoOutput = new H264NalSplitter();
-        } else {
-            videoOutput = new IvfTransformer();
+        switch(videoCodec) {
+            case 'H264':
+                videoOutput = new H264NalSplitter();
+                break;
+            case 'H265':
+                videoOutput = new H265NalSplitter();
+                break;
+            case "VP8":
+                videoOutput = new IvfTransformer();
+                break;
+            default:
+                throw new Error("Codec not supported");
         }
 
         let headers: map = {
@@ -53,7 +62,7 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                 })
                 .on('stderr', console.error);
 
-            if (streamOpts.video_codec === 'VP8') {
+            if (videoCodec === 'VP8') {
                 command.output(StreamOutput(videoOutput).url, { end: false })
                     .noAudio()
                     .size(`${streamOpts.width}x${streamOpts.height}`)
@@ -61,6 +70,23 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                     .videoBitrate(`${streamOpts.bitrateKbps}k`)
                     .format('ivf')
                     .outputOption('-deadline', 'realtime');
+            } else if (videoCodec === "H265") {
+                command.output(StreamOutput(videoOutput).url, { end: false })
+                    .noAudio()
+                    .size(`${streamOpts.width}x${streamOpts.height}`)
+                    .fpsOutput(streamOpts.fps)
+                    .videoBitrate(`${streamOpts.bitrateKbps}k`)
+                    .format('hevc')
+                    .outputOptions([
+                        '-tune zerolatency',
+                        '-pix_fmt yuv420p',
+                        '-preset ultrafast',
+                        '-profile:v main',
+                        `-g ${streamOpts.fps}`,
+                        `-bf 0`,
+                        `-x265-params keyint=${streamOpts.fps}:min-keyint=${streamOpts.fps}`,
+                        '-bsf:v hevc_metadata=aud=insert'
+                    ]);
             } else {
                 command.output(StreamOutput(videoOutput).url, { end: false })
                     .noAudio()
@@ -74,6 +100,7 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                         '-preset ultrafast',
                         '-profile:v baseline',
                         `-g ${streamOpts.fps}`,
+                        `-bf 0`,
                         `-x264-params keyint=${streamOpts.fps}:min-keyint=${streamOpts.fps}`,
                         '-bsf:v h264_metadata=aud=insert'
                     ]);
@@ -98,7 +125,9 @@ export function streamLivestreamVideo(input: string | Readable, mediaUdp: MediaU
                 opus.pipe(audioStream, { end: false });
             }
 
-            if (streamOpts.hardware_acceleration) command.inputOption('-hwaccel', 'auto');
+            if (streamOpts.hardwareAcceleration) command.inputOption('-hwaccel', 'auto');
+
+            if(streamOpts.readAtNativeFps) command.inputOption('-re')
 
             if (isHttpUrl) {
                 command.inputOption('-headers',

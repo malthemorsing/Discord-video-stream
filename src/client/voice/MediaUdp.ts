@@ -2,7 +2,6 @@ import udpCon from 'dgram';
 import { isIPv4 } from 'net';
 import { AudioPacketizer } from '../packet/AudioPacketizer';
 import { BaseMediaPacketizer, max_int32bit } from '../packet/BaseMediaPacketizer';
-import { streamOpts } from '../StreamOpts';
 import {
     VideoPacketizerH264,
     VideoPacketizerH265
@@ -41,7 +40,7 @@ export class MediaUdp {
         this._mediaConnection = voiceConnection;
         this._audioPacketizer = new AudioPacketizer(this);
 
-        const videoCodec = normalizeVideoCodec(streamOpts.video_codec);
+        const videoCodec = normalizeVideoCodec(this.mediaConnection.streamOptions.videoCodec);
         switch (videoCodec)
         {
             case "H264":

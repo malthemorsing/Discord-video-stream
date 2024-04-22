@@ -1,15 +1,9 @@
-import { MediaUdp, Streamer, getInputMetadata, inputHasAudio, setStreamOpts } from "@dank074/discord-video-stream";
+import { MediaUdp, Streamer, getInputMetadata, inputHasAudio } from "@dank074/discord-video-stream";
 import config from "./config.json";
 import { Client, StageChannel } from "discord.js-selfbot-v13";
 import { customFfmpegCommand, customStreamVideo } from "./customStream";
 
 const streamer = new Streamer(new Client());
-
-setStreamOpts({
-    bitrateKbps: config.streamOpts.bitrateKbps,
-    maxBitrateKbps: config.streamOpts.maxBitrateKbps, 
-    video_codec: 'H264'
-})
 
 // ready event
 streamer.client.on("ready", () => {
@@ -78,7 +72,7 @@ async function playVideo(video: string, udpConn: MediaUdp) {
         const width = videoStream.width
         const height = videoStream.height
         console.log({fps, width, height, "profile": videoStream.profile})
-        setStreamOpts({ fps, width, height })
+        udpConn.mediaConnection.streamOptions = { fps, width, height }
         includeAudio = inputHasAudio(metadata);
     } catch(e) {
         console.log(e);

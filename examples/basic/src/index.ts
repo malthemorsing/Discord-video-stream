@@ -1,18 +1,8 @@
 import { Client, StageChannel } from "discord.js-selfbot-v13";
-import { command, streamLivestreamVideo, MediaUdp, setStreamOpts, getInputMetadata, inputHasAudio, Streamer } from "@dank074/discord-video-stream";
+import { command, streamLivestreamVideo, MediaUdp, getInputMetadata, inputHasAudio, Streamer } from "@dank074/discord-video-stream";
 import config from "./config.json";
 
 const streamer = new Streamer(new Client());
-
-setStreamOpts({
-    width: config.streamOpts.width, 
-    height: config.streamOpts.height, 
-    fps: config.streamOpts.fps, 
-    bitrateKbps: config.streamOpts.bitrateKbps,
-    maxBitrateKbps: config.streamOpts.maxBitrateKbps, 
-    hardware_acceleration: config.streamOpts.hardware_acceleration,
-    video_codec: config.streamOpts.videoCodec === 'H264' ? 'H264' : 'VP8'
-})
 
 // ready event
 streamer.client.on("ready", () => {
@@ -43,7 +33,15 @@ streamer.client.on("messageCreate", async (msg) => {
             await streamer.client.user.voice.setSuppressed(false);
         }
 
-        const streamUdpConn = await streamer.createStream();
+        const streamUdpConn = await streamer.createStream({
+            width: config.streamOpts.width, 
+            height: config.streamOpts.height, 
+            fps: config.streamOpts.fps, 
+            bitrateKbps: config.streamOpts.bitrateKbps,
+            maxBitrateKbps: config.streamOpts.maxBitrateKbps, 
+            hardwareAcceleratedDecoding: config.streamOpts.hardware_acceleration,
+            videoCodec: config.streamOpts.videoCodec === 'H264' ? 'H264' : 'VP8'
+        });
 
         await playVideo(args.url, streamUdpConn);
 
@@ -58,7 +56,15 @@ streamer.client.on("messageCreate", async (msg) => {
         if(!channel) return;
 
         console.log(`Attempting to join voice channel ${msg.guildId}/${channel.id}`);
-        const vc = await streamer.joinVoice(msg.guildId, channel.id);
+        const vc = await streamer.joinVoice(msg.guildId, channel.id, {
+            width: config.streamOpts.width, 
+            height: config.streamOpts.height, 
+            fps: config.streamOpts.fps, 
+            bitrateKbps: config.streamOpts.bitrateKbps,
+            maxBitrateKbps: config.streamOpts.maxBitrateKbps, 
+            hardwareAcceleratedDecoding: config.streamOpts.hardware_acceleration,
+            videoCodec: config.streamOpts.videoCodec === 'H264' ? 'H264' : 'VP8'
+        });
 
         if(channel instanceof StageChannel)
         {

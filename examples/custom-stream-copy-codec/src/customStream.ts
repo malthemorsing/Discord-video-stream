@@ -3,7 +3,6 @@ import {
     H264NalSplitter,
     MediaUdp,
     VideoStream,
-    streamOpts,
 } from "@dank074/discord-video-stream";
 import { Readable } from "node:stream";
 import ffmpeg from "fluent-ffmpeg";
@@ -18,6 +17,8 @@ export function customStreamVideo(
     includeAudio = true,
 ) {
     return new Promise<string>((resolve, reject) => {
+        const streamOpts = mediaUdp.mediaConnection.streamOptions;
+
         const videoStream: VideoStream = new VideoStream(
             mediaUdp,
             streamOpts.fps
@@ -84,7 +85,7 @@ export function customStreamVideo(
                 opus.pipe(audioStream, { end: false });
             }
 
-            if (streamOpts.hardware_acceleration)
+            if (streamOpts.hardwareAcceleratedDecoding)
                 customFfmpegCommand.inputOption("-hwaccel", "auto");
 
             if (isHttpUrl) {

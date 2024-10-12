@@ -1,13 +1,15 @@
-# Discord bot video
+# Discord self-bot video
 Fork: [Discord-video-experiment](https://github.com/mrjvs/Discord-video-experiment)
+
+> [!CAUTION]
+> Using any kind of automation programs on your account can result in your account getting permanently banned by Discord. Use at your own risk
 
 This project implements the custom Discord UDP protocol for sending media. Since Discord is likely change their custom protocol, this library is subject to break at any point. An effort will be made to keep this library up to date with the latest Discord protocol, but it is not guranteed.
 
-For better stability it is recommended to use WebRTC protocol instead since Discord is forced to adhere to spec, which means that the non-signaling code is guaranteed to work.
+For better stability it is recommended to use WebRTC protocol instead since Discord is forced to adhere to spec, which means that the non-signaling portion of the code is guaranteed to work.
 
 ## Features
- - Playing vp8 or h264 video in a voice channel (`go live`, or webcam video)
- - Playing opus audio in a voice channel
+ - Playing video & audio in a voice channel (`Go Live`, or webcam video)
 
 ## Implementation
 What I implemented and what I did not.
@@ -26,6 +28,10 @@ What I implemented and what I did not.
 #### Connection types
  - [X] Regular Voice Connection
  - [X] Go live
+
+ ### Encryption
+ - [X] Transport Encryption
+ - [ ] https://github.com/dank074/Discord-video-stream/issues/102
 
 #### Extras
  - [X] Figure out rtp header extensions (discord specific) (discord seems to use one-byte RTP header extension https://www.rfc-editor.org/rfc/rfc8285.html#section-4.2)
@@ -57,7 +63,7 @@ npm install @dank074/discord-video-stream@latest
 npm install discord.js-selfbot-v13@latest
 ```
 
-Create a new client, and patch its events to listen for voice gateway events:
+Create a new Streamer, and pass it a selfbot Client
 ```typescript
 import { Client } from "discord.js-selfbot-v13";
 import { Streamer } from '@dank074/discord-video-stream';
@@ -81,11 +87,17 @@ Start sending media over the udp connection:
 udp.mediaConnection.setSpeaking(true);
 udp.mediaConnection.setVideoStatus(true);
 try {
-    const res = await streamLivestreamVideo("DIRECT VIDEO URL OR READABLE STREAM HERE", udp);
+    const cancellableCommand = await streamLivestreamVideo("DIRECT VIDEO URL OR READABLE STREAM HERE", udp);
 
+    const result = await cancellableCommand;
     console.log("Finished playing video " + res);
 } catch (e) {
-    console.log(e);
+    if (command.isCanceled) {
+            // Handle the cancelation here
+            console.log('Ffmpeg command was cancelled');
+        } else {
+            console.log(e);
+        }
 } finally {
     udp.mediaConnection.setSpeaking(false);
     udp.mediaConnection.setVideoStatus(false);
@@ -135,6 +147,15 @@ rtcpSenderReportEnabled?: boolean;
  * Encoding preset for H264 or H265. The faster it is, the lower the quality
  */
 h26xPreset?: 'ultrafast' | 'superfast' | 'veryfast' | 'faster' | 'fast' | 'medium' | 'slow' | 'slower' | 'veryslow';
+/**
+ * Adds ffmpeg params to minimize latency and start outputting video as fast as possible.
+ * Might create lag in video output in some rare cases
+ */
+minimizeLatency?: boolean;
+/**
+ * ChaCha20-Poly1305 Encryption is faster than AES-256-GCM, except when using AES-NI
+ */
+forceChacha20Encryption?: boolean;
 ```
 ## Running example
 `examples/basic/src/config.json`:

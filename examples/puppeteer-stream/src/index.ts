@@ -1,11 +1,13 @@
-import { MediaUdp, Streamer, command, streamLivestreamVideo } from '@dank074/discord-video-stream';
+import { MediaUdp, Streamer, streamLivestreamVideo, Utils } from '@dank074/discord-video-stream';
 import { Client, StageChannel } from 'discord.js-selfbot-v13';
 import { executablePath } from 'puppeteer';
 import { launch, getStream } from 'puppeteer-stream';
-import config from "./config.json";
+import config from "./config.json" with {type: "json"};
 import { Readable } from 'node:stream';
+import PCancelable from "p-cancelable";
 
 const streamer = new Streamer(new Client());
+let command: PCancelable<string>;
 
 // ready event
 streamer.client.on("ready", () => {
@@ -47,7 +49,7 @@ streamer.client.on("messageCreate", async (msg) => {
             bitrateKbps: config.streamOpts.bitrateKbps,
             maxBitrateKbps: config.streamOpts.maxBitrateKbps, 
             hardwareAcceleratedDecoding: config.streamOpts.hardware_acceleration,
-            videoCodec: config.streamOpts.videoCodec === 'H264' ? 'H264' : 'VP8'
+            videoCodec: "VP8" // puppeteer only supports this video codec
         });
 
         await streamPuppeteer(url, streamUdpConn);
@@ -56,11 +58,14 @@ streamer.client.on("messageCreate", async (msg) => {
 
         return;
     } else if (msg.content.startsWith("$disconnect")) {
-        command?.kill("SIGINT");
+        command?.cancel();
 
         streamer.leaveVoice();
     } 
 })
+
+// login
+streamer.client.login(config.token);
 
 async function streamPuppeteer(url: string, udpConn: MediaUdp) {
     const streamOpts = udpConn.mediaConnection.streamOptions;
@@ -83,14 +88,19 @@ async function streamPuppeteer(url: string, udpConn: MediaUdp) {
     udpConn.mediaConnection.setVideoStatus(true);
     try {
         // is there a way to distinguish audio from video chunks so we dont have to use ffmpeg ???
-        const res = await streamLivestreamVideo((stream as Readable), udpConn);
+        command = streamLivestreamVideo((stream as Readable), udpConn);
 
+        const res = await command;
         console.log("Finished playing video " + res);
     } catch (e) {
-        console.log(e);
+        if (command.isCanceled) {
+            // Handle the cancelation here
+            console.log('Operation was canceled');
+        } else {
+            console.log(e);
+        }
     } finally {
         udpConn.mediaConnection.setSpeaking(false);
         udpConn.mediaConnection.setVideoStatus(false);
     }
-    command?.kill("SIGINT");
 }

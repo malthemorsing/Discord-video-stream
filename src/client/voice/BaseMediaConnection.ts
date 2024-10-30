@@ -42,12 +42,6 @@ export interface StreamOptions {
      */
     videoCodec: SupportedVideoCodec;
     /**
-     * Ffmpeg will read frames at native framerate. Disabling this make ffmpeg read frames as
-     * fast as possible and `setTimeout` will be used to control output fps instead. Enabling this
-     * can result in certain streams having video/audio out of sync (see https://github.com/dank074/Discord-video-stream/issues/52)
-     */
-    readAtNativeFps: boolean;
-    /**
      * Enables sending RTCP sender reports. Helps the receiver synchronize the audio/video frames, except in some weird
      * cases which is why you can disable it
      */
@@ -76,7 +70,6 @@ const defaultStreamOptions: StreamOptions = {
     maxBitrateKbps: 2500,
     hardwareAcceleratedDecoding: false,
     videoCodec: 'H264',
-    readAtNativeFps: true,
     rtcpSenderReportEnabled: true,
     h26xPreset: 'ultrafast',
     minimizeLatency: true,

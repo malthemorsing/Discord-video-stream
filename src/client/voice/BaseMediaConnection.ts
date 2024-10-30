@@ -1,9 +1,10 @@
+import sp from "sodium-plus";
+import { webcrypto } from "node:crypto";
 import { VoiceOpCodes } from "./VoiceOpCodes.js";
 import { MediaUdp } from "./MediaUdp.js";
 import { normalizeVideoCodec, STREAMS_SIMULCAST, SupportedEncryptionModes, SupportedVideoCodec } from "../../utils.js";
 import type { ReadyMessage, SelectProtocolAck } from "./VoiceMessageTypes.js";
 import WebSocket from 'ws';
-import { assert } from "node:console";
 
 type VoiceConnectionStatus =
 {
@@ -99,7 +100,9 @@ export abstract class BaseMediaConnection {
     public ssrc: number | null = null;
     public videoSsrc: number | null = null;
     public rtxSsrc: number | null = null;
-    public secretkey: Uint8Array | null = null;
+    public secretkey: Buffer | null = null;
+    public secretkeyAes256: Promise<webcrypto.CryptoKey> | null = null;
+    public secretkeyChacha20: sp.CryptographyKey | null = null;
     private _streamOptions: StreamOptions;
 
     constructor(guildId: string, botId: string, channelId: string, options: Partial<StreamOptions>, callback: (udp: MediaUdp) => void) {
@@ -218,7 +221,16 @@ export abstract class BaseMediaConnection {
     }
 
     handleProtocolAck(d: SelectProtocolAck): void {
-        this.secretkey = new Uint8Array(d.secret_key);
+        this.secretkey = Buffer.from(d.secret_key);
+        this.secretkeyAes256 = webcrypto.subtle.importKey("raw", 
+            this.secretkey,
+            {
+                name: "AES-GCM",
+                length: 32
+            },
+            false, ["encrypt"]
+        );
+        this.secretkeyChacha20 = new sp.CryptographyKey(this.secretkey);
 
         this.ready(this.udp);
         this.udp.ready = true;

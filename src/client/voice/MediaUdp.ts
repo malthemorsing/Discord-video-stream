@@ -30,16 +30,69 @@ export class MediaUdp {
     private _nonce: number;
     private _socket: udpCon.Socket | null = null;
     private _ready: boolean = false;
-    private _audioPacketizer: BaseMediaPacketizer;
-    private _videoPacketizer: BaseMediaPacketizer;
+    private _audioPacketizer?: BaseMediaPacketizer;
+    private _videoPacketizer?: BaseMediaPacketizer;
     private _encryptionMode: SupportedEncryptionModes | undefined;
+    private _ip?: string;
+    private _port?: number;
 
     constructor(voiceConnection: BaseMediaConnection) {
         this._nonce = 0;
-
         this._mediaConnection = voiceConnection;
-        this._audioPacketizer = new AudioPacketizer(this);
+    }
 
+    public getNewNonceBuffer(): Buffer {
+        const nonceBuffer = this._encryptionMode === SupportedEncryptionModes.AES256 ? Buffer.alloc(12) : Buffer.alloc(24);
+        this._nonce = (this._nonce + 1) % max_int32bit;
+        
+        nonceBuffer.writeUInt32BE(this._nonce, 0);
+        return nonceBuffer;
+    }
+
+    public get audioPacketizer(): BaseMediaPacketizer {
+        return this._audioPacketizer!;
+    }
+
+    public get videoPacketizer(): BaseMediaPacketizer {
+        // This will never be undefined anyway, so it's safe
+        return this._videoPacketizer!;
+    }
+
+    public get mediaConnection(): BaseMediaConnection {
+        return this._mediaConnection;
+    }
+
+    public get encryptionMode(): SupportedEncryptionModes | undefined {
+        return this._encryptionMode;
+    }
+
+    public set encryptionMode(mode: SupportedEncryptionModes) {
+        this._encryptionMode = mode;
+    }
+
+    public get ip()
+    {
+        return this._ip;
+    }
+
+    public get port()
+    {
+        return this._port;
+    }
+
+    public async sendAudioFrame(frame: Buffer, frametime: number): Promise<void> {
+        if(!this.ready) return;
+        await this.audioPacketizer.sendFrame(frame, frametime);
+    }
+
+    public async sendVideoFrame(frame: Buffer, frametime: number): Promise<void> {
+        if(!this.ready) return;
+        await this.videoPacketizer.sendFrame(frame, frametime);
+    }
+
+    public updatePacketizer(): void {
+        this._audioPacketizer = new AudioPacketizer(this);
+        this._audioPacketizer.ssrc = this._mediaConnection.ssrc!;
         const videoCodec = normalizeVideoCodec(this.mediaConnection.streamOptions.videoCodec);
         switch (videoCodec)
         {
@@ -55,44 +108,7 @@ export class MediaUdp {
             default:
                 throw new Error(`Packetizer not implemented for ${videoCodec}`)
         }
-    }
-
-    public getNewNonceBuffer(): Buffer {
-        const nonceBuffer = this._encryptionMode === SupportedEncryptionModes.AES256 ? Buffer.alloc(12) : Buffer.alloc(24);
-        this._nonce = (this._nonce + 1) % max_int32bit;
-        
-        nonceBuffer.writeUInt32BE(this._nonce, 0);
-        return nonceBuffer;
-    }
-
-    public get audioPacketizer(): BaseMediaPacketizer {
-        return this._audioPacketizer;
-    }
-
-    public get videoPacketizer(): BaseMediaPacketizer {
-        return this._videoPacketizer;
-    }
-
-    public get mediaConnection(): BaseMediaConnection {
-        return this._mediaConnection;
-    }
-
-    public get encryptionMode(): SupportedEncryptionModes | undefined {
-        return this._encryptionMode;
-    }
-
-    public set encryptionMode(mode: SupportedEncryptionModes) {
-        this._encryptionMode = mode;
-    }
-
-    public async sendAudioFrame(frame: Buffer, frametime: number): Promise<void> {
-        if(!this.ready) return;
-        await this.audioPacketizer.sendFrame(frame, frametime);
-    }
-
-    public async sendVideoFrame(frame: Buffer, frametime: number): Promise<void> {
-        if(!this.ready) return;
-        await this.videoPacketizer.sendFrame(frame, frametime);
+        this._videoPacketizer.ssrc = this._mediaConnection.videoSsrc!;
     }
 
     public sendPacket(packet: Buffer): Promise<void> {
@@ -143,7 +159,9 @@ export class MediaUdp {
                 }
                 try {
                     const packet = parseLocalPacket(message);
-                    this._mediaConnection.setProtocols(packet.ip, packet.port);
+                    this._ip = packet.ip;
+                    this._port = packet.port;
+                    this._ready = true;
                 } catch(e) { reject(e) }
                 
                 resolve();
